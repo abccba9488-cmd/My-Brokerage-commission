@@ -1,0 +1,7 @@
+.env
+data/*.db
+reports/*.md
+reports/*.csv
+__pycache__/
+*.pyc
+.venv/

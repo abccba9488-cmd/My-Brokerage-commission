@@ -1,0 +1,4 @@
+FinMind>=1.7.0
+pandas>=2.0.0
+PyYAML>=6.0
+python-dotenv>=1.0.0

@@ -1,0 +1,52 @@
+# Default watchlist for testing. Replace with your own 10~30 tickers later.
+stocks:
+  - code: "2330"
+    name: "台積電"
+  - code: "2317"
+    name: "鴻海"
+  - code: "2454"
+    name: "聯發科"
+  - code: "2603"
+    name: "長榮"
+  - code: "2884"
+    name: "玉山金"
+
+# Lookback windows (trading days)
+lookback:
+  short: 5
+  mid: 10
+  long: 20
+
+# Broker branch (分點) indicator thresholds
+broker:
+  streak_min_days: 3          # 連續買超判定門檻（天）
+  streak_allow_gap_days: 1    # 允許中斷天數
+  volume_share_min_pct: 10    # 低於此佔比視為雜訊，濾除
+  top_n_concentration: 10     # 集中度計算取前 N 大分點
+
+# Margin (融資) risk thresholds
+margin:
+  maintenance_ratio_warning_pct: 130   # 逼近維持率預警
+  maintenance_ratio_danger_pct: 120    # 斷頭風險
+
+# Sell-off alert: fires when >= this many conditions are true
+sell_alert:
+  min_conditions_triggered: 3
+  consecutive_sell_days: 3
+  price_below_cost_pct: 0
+
+# Signal light thresholds (0~100 composite score)
+signal_light:
+  bullish_min_score: 70
+  bearish_max_score: 30
+
+# Backtest
+backtest:
+  holding_days: [3, 5, 10, 20]
+
+# Entry/exit signal (buy/stop-loss/take-profit rules)
+entry_exit:
+  entry_min_conditions: 4       # 至少符合幾項才算 BUY（總共5項）
+  stop_loss_pct: -5             # 跌破主力成本 N% 停損
+  take_profit_min_pct: 25       # 高於主力成本 N% 且分點轉賣才停利
+  volume_surge_ratio: 1.0       # 成交量 / 20日均量 門檻（>=1.0 視為量能達標）
