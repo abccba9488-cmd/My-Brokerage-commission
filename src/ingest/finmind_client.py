@@ -15,11 +15,20 @@ def has_sponsor_token() -> bool:
     return bool(os.getenv("FINMIND_TOKEN"))
 
 
+_cached_loader: DataLoader | None = None
+
+
 def get_loader() -> DataLoader:
-    """Return an authenticated DataLoader if FINMIND_TOKEN is set, otherwise
-    an anonymous loader restricted to free-tier datasets (300 req/hour)."""
+    """Return a cached, authenticated DataLoader (or an anonymous one on the
+    free tier). Cached at module scope so the broker-branch fetch loop, which
+    calls this once per date, doesn't re-authenticate on every call."""
+    global _cached_loader
+    if _cached_loader is not None:
+        return _cached_loader
+
     loader = DataLoader()
     token = os.getenv("FINMIND_TOKEN")
     if token:
         loader.login_by_token(api_token=token)
+    _cached_loader = loader
     return loader

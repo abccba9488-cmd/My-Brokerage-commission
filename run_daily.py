@@ -84,6 +84,15 @@ def analyze_stock(stock: dict, start_date: str, end_date: str, config: dict, con
     lookback = config["lookback"]["long"]
     broker_cfg = config["broker"]
 
+    # price_df/margin_df/inst_df are fetched with an extra buffer for rolling
+    # windows to warm up (see main()), but broker indicators (streak/cost/CSI)
+    # must all agree on the same recent window, otherwise CSI's numerator
+    # covers more days than its volume denominator, and cost estimates pick up
+    # stale pre-streak trades. Window broker_df down to the same `lookback`
+    # trading days used everywhere else.
+    recent_dates = set(price_df["date"].tail(lookback))
+    broker_df = broker_df[broker_df["date"].isin(recent_dates)]
+
     mr = margin_risk.latest(price_df, margin_df, lookback, config)
     vp = volume_price.latest(price_df, lookback)
 
