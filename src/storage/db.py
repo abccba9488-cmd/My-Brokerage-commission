@@ -92,8 +92,18 @@ CREATE TABLE IF NOT EXISTS government_bank (
 
 
 def get_connection() -> sqlite3.Connection:
+    """`timeout` (Python-level retry budget) and `PRAGMA busy_timeout`
+    (SQLite-level, covers each individual statement, not just connect())
+    both matter: without them, one process's long write transaction makes
+    every other process's query fail immediately with "database is locked"
+    instead of waiting. This is what caused the 21:30 scheduled run to
+    silently drop 7/38 stocks while a multi-hour history backfill was
+    writing concurrently — the two didn't fail loudly, they just lost data.
+    WAL mode also lets readers proceed without blocking on a writer."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30.0)
+    conn.execute("PRAGMA busy_timeout = 30000")
+    conn.execute("PRAGMA journal_mode = WAL")
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
