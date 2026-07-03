@@ -184,6 +184,18 @@ def render_report(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--days", type=int, default=365, help="calendar days of history to backtest over")
+    parser.add_argument(
+        "--streak-min-days", type=int, default=None,
+        help="override config broker.streak_min_days for this run only (doesn't touch stocks.yaml)",
+    )
+    parser.add_argument(
+        "--volume-share-min-pct", type=float, default=None,
+        help="override config broker.volume_share_min_pct for this run only",
+    )
+    parser.add_argument(
+        "--label", type=str, default=None,
+        help="tag for the output report filename, so experiments don't overwrite each other",
+    )
     args = parser.parse_args()
 
     if not has_sponsor_token():
@@ -198,9 +210,18 @@ def main() -> None:
     start_date = end_date - timedelta(days=args.days)
     end_str, start_str = end_date.strftime("%Y-%m-%d"), start_date.strftime("%Y-%m-%d")
 
-    broker_cfg = config["broker"]
+    broker_cfg = dict(config["broker"])
+    if args.streak_min_days is not None:
+        broker_cfg["streak_min_days"] = args.streak_min_days
+    if args.volume_share_min_pct is not None:
+        broker_cfg["volume_share_min_pct"] = args.volume_share_min_pct
     lookback = config["lookback"]["long"]
     holding_days_list = config["backtest"]["holding_days"]
+
+    logger.info(
+        "Signal params: streak_min_days=%s, volume_share_min_pct=%s",
+        broker_cfg["streak_min_days"], broker_cfg["volume_share_min_pct"],
+    )
 
     stock_signal_pairs = []
     stock_baseline_pairs = []
@@ -269,15 +290,28 @@ def main() -> None:
     credibility_out = {
         "generated_from_backtest_date": run_date,
         "backtest_window_days": args.days,
+        "signal_params": {
+            "streak_min_days": broker_cfg["streak_min_days"],
+            "volume_share_min_pct": broker_cfg["volume_share_min_pct"],
+        },
         "stocks": {sid: g for sid, g in grades.items()},
     }
-    CREDIBILITY_PATH.write_text(
+    # A labeled experiment run (different thresholds than stocks.yaml) writes
+    # to its own file instead of overwriting the credibility grades that
+    # run_daily.py actually reads — don't let a threshold experiment silently
+    # change what the live daily report treats as trustworthy.
+    credibility_path = (
+        CREDIBILITY_PATH if args.label is None
+        else CREDIBILITY_PATH.with_name(f"signal_credibility_{args.label}.yaml")
+    )
+    credibility_path.write_text(
         yaml.safe_dump(credibility_out, allow_unicode=True, sort_keys=False), encoding="utf-8"
     )
-    logger.info("Signal credibility grades written to %s", CREDIBILITY_PATH)
+    logger.info("Signal credibility grades written to %s", credibility_path)
 
     report = render_report(per_stock_results, pooled, per_stock_baseline, baseline_pooled, grades, run_date, args.days)
-    out_path = REPORTS_DIR / f"backtest_{run_date}.md"
+    suffix = f"_{args.label}" if args.label else ""
+    out_path = REPORTS_DIR / f"backtest_{run_date}{suffix}.md"
     out_path.write_text(report, encoding="utf-8")
     print(report)
     print(f"\nSaved: {out_path}")
