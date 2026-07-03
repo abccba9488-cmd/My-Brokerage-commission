@@ -17,7 +17,16 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-from src.ingest import fetch_broker, fetch_institutional, fetch_lending, fetch_margin, fetch_price
+from src.ingest import (
+    fetch_broker,
+    fetch_government_bank,
+    fetch_holding_shares,
+    fetch_institutional,
+    fetch_lending,
+    fetch_margin,
+    fetch_price,
+    fetch_shareholding,
+)
 from src.ingest.finmind_client import has_sponsor_token
 from src.indicators import (
     accumulation_score,
@@ -58,6 +67,17 @@ def load_credibility() -> dict:
     return data.get("stocks", {})
 
 
+def ensure_government_bank_data(conn, date: str) -> None:
+    """八大行庫 data is market-wide per date, so only the first stock in a run
+    actually triggers a fetch — every other stock hits this cache check."""
+    cur = conn.execute("SELECT 1 FROM government_bank WHERE date = ? LIMIT 1", (date,))
+    if cur.fetchone() is not None:
+        return
+    rows = fetch_government_bank.fetch(date)
+    if rows:
+        db.upsert_rows(conn, "government_bank", rows)
+
+
 def analyze_stock(stock: dict, start_date: str, end_date: str, config: dict, conn, credibility: dict) -> dict | None:
     sid = stock["code"]
 
@@ -68,16 +88,28 @@ def analyze_stock(stock: dict, start_date: str, end_date: str, config: dict, con
     inst_rows = fetch_institutional.fetch(sid, start_date, end_date)
     margin_rows = fetch_margin.fetch(sid, start_date, end_date)
     lending_rows = fetch_lending.fetch(sid, start_date, end_date)
+    holding_rows = fetch_holding_shares.fetch(sid, start_date, end_date)
+    shareholding_rows = fetch_shareholding.fetch(sid, start_date, end_date)
 
     db.upsert_rows(conn, "stock_price", price_rows)
     db.upsert_rows(conn, "institutional", inst_rows)
     db.upsert_rows(conn, "margin", margin_rows)
     db.upsert_rows(conn, "lending", lending_rows)
+    db.upsert_rows(conn, "holder_concentration", holding_rows)
+    db.upsert_rows(conn, "foreign_shareholding", shareholding_rows)
 
     price_df = pd.DataFrame(price_rows).sort_values("date").reset_index(drop=True)
     inst_df = pd.DataFrame(inst_rows)
     margin_df = pd.DataFrame(margin_rows) if margin_rows else pd.DataFrame(columns=["date", "margin_buy", "margin_balance"])
     lending_df = pd.DataFrame(lending_rows)
+    holding_df = pd.DataFrame(holding_rows)
+
+    ensure_government_bank_data(conn, price_df["date"].iloc[-1])
+    gov_row = conn.execute(
+        "SELECT net_shares FROM government_bank WHERE stock_id = ? AND date = ?",
+        (sid, price_df["date"].iloc[-1]),
+    ).fetchone()
+    government_bank_net = int(gov_row[0]) if gov_row else 0
 
     broker_available = has_sponsor_token()
     if broker_available:
@@ -173,12 +205,30 @@ def analyze_stock(stock: dict, start_date: str, end_date: str, config: dict, con
         elif ld["lending_balance"].iloc[-1] < ld["lending_balance"].iloc[0]:
             lending_trend = "decreasing"
 
+    # 股東持股分級表 is weekly, so within the fetch window this is typically
+    # only a handful of points — compare first vs last available reading.
+    major_holder_trend = "unknown"
+    latest_major_holder_pct = None
+    if len(holding_df) >= 2:
+        hd = holding_df.sort_values("date")
+        latest_major_holder_pct = float(hd["major_holder_pct"].iloc[-1])
+        if hd["major_holder_pct"].iloc[-1] > hd["major_holder_pct"].iloc[0]:
+            major_holder_trend = "increasing"
+        elif hd["major_holder_pct"].iloc[-1] < hd["major_holder_pct"].iloc[0]:
+            major_holder_trend = "decreasing"
+        else:
+            major_holder_trend = "flat"
+    elif len(holding_df) == 1:
+        latest_major_holder_pct = float(holding_df["major_holder_pct"].iloc[-1])
+
     health = chip_health.compute(
         accumulation_score=acc["score"],
         foreign_net=latest_foreign_net,
         trust_net=latest_trust_net,
         margin_risk_level=mr.get("risk_level", "warning"),
         lending_balance_trend=lending_trend,
+        major_holder_trend=major_holder_trend,
+        government_bank_net=government_bank_net,
     )
 
     light = signal_light.bull_bear_light(health["score"], config)
@@ -230,6 +280,9 @@ def analyze_stock(stock: dict, start_date: str, end_date: str, config: dict, con
         "entry_signal": entry_signal,
         "exit_signal": exit_signal,
         "credibility": credibility.get(sid, NO_BACKTEST_YET),
+        "major_holder_pct": latest_major_holder_pct,
+        "major_holder_trend": major_holder_trend,
+        "government_bank_net": government_bank_net,
     }
 
 

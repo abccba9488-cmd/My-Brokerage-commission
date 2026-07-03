@@ -19,6 +19,13 @@ ACTION_LABELS = {
     "HOLD": "－ 觀望",
 }
 
+_HOLDER_TREND_LABELS = {
+    "increasing": "↑ 大戶持股上升",
+    "decreasing": "↓ 大戶持股下降",
+    "flat": "→ 持平",
+    "unknown": "資料不足以判斷趨勢",
+}
+
 
 def _final_action(r: dict) -> str:
     """Exit signals take priority over entry signals: protecting an existing
@@ -56,6 +63,12 @@ def _stock_section(r: dict) -> str:
         f"- 量價型態：{r['volume_price'].get('vp_pattern', 'N/A')}"
         + ("　⚠️ 假突破風險" if r["volume_price"].get("false_breakout_risk") else ""),
         f"- 外資／投信買賣超：{r['foreign_net']:+,} / {r['trust_net']:+,} 張",
+        f"- 八大行庫買賣超：{r['government_bank_net']:+,} 股",
+        (
+            f"- 大戶持股（400張以上）：{r['major_holder_pct']}%（{_HOLDER_TREND_LABELS.get(r['major_holder_trend'], '')}）"
+            if r["major_holder_pct"] is not None
+            else "- 大戶持股：無資料（需累積至少2週的股東分級資料）"
+        ),
         f"- 進場條件：{len(entry['conditions_met'])}/{entry['conditions_total']} 項符合"
         + (f"（{'、'.join(entry['conditions_met'])}）" if entry["conditions_met"] else "")
         + (f"　未評估：{'、'.join(entry['conditions_unavailable'])}" if entry["conditions_unavailable"] else ""),
@@ -107,6 +120,7 @@ def render_csv(results: list[dict], path: Path) -> None:
         "accumulation_score", "action", "credibility_grade", "entry_conditions_met", "entry_conditions_total",
         "margin_maintenance_ratio_pct", "margin_risk_level",
         "vp_pattern", "false_breakout_risk", "foreign_net", "trust_net",
+        "government_bank_net", "major_holder_pct", "major_holder_trend",
         "broker_available", "broker_cost", "broker_pnl_pct", "sell_alert",
     ]
     with open(path, "w", newline="", encoding="utf-8-sig") as f:
@@ -130,6 +144,9 @@ def render_csv(results: list[dict], path: Path) -> None:
                 "false_breakout_risk": r["volume_price"].get("false_breakout_risk"),
                 "foreign_net": r["foreign_net"],
                 "trust_net": r["trust_net"],
+                "government_bank_net": r["government_bank_net"],
+                "major_holder_pct": r["major_holder_pct"],
+                "major_holder_trend": r["major_holder_trend"],
                 "broker_available": r["broker_available"],
                 "broker_cost": r["broker_cost"].get("cost"),
                 "broker_pnl_pct": r["broker_cost"].get("pnl_pct"),

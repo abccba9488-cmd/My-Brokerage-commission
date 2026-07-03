@@ -57,6 +57,37 @@ CREATE TABLE IF NOT EXISTS broker_alias (
     broker_id TEXT PRIMARY KEY,
     canonical_name TEXT NOT NULL
 );
+
+-- Shareholder concentration (股東持股分級表), weekly. Pre-aggregated at ingest
+-- time into major (>=400,001 shares, i.e. 400張+) vs retail share of ownership,
+-- rather than storing all ~15 raw tiers — that's the only cut the indicators use.
+CREATE TABLE IF NOT EXISTS holder_concentration (
+    stock_id TEXT NOT NULL,
+    date TEXT NOT NULL,
+    major_holder_pct REAL,
+    retail_holder_pct REAL,
+    major_holder_people INTEGER,
+    total_people INTEGER,
+    PRIMARY KEY (stock_id, date)
+);
+
+-- Foreign ownership ratio (外資持股比例), daily. Distinct from `institutional`
+-- (today's buy/sell net) — this tracks the cumulative ownership level/trend.
+CREATE TABLE IF NOT EXISTS foreign_shareholding (
+    stock_id TEXT NOT NULL,
+    date TEXT NOT NULL,
+    foreign_shares_ratio REAL,
+    foreign_remain_ratio REAL,
+    PRIMARY KEY (stock_id, date)
+);
+
+-- 八大行庫 (government-linked bank) net buy/sell, daily, aggregated across all 8 banks.
+CREATE TABLE IF NOT EXISTS government_bank (
+    stock_id TEXT NOT NULL,
+    date TEXT NOT NULL,
+    net_shares INTEGER,
+    PRIMARY KEY (stock_id, date)
+);
 """
 
 
