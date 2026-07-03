@@ -211,14 +211,34 @@ def main() -> None:
         sid = stock["code"]
         try:
             price_df, broker_df = fetch_and_cache_history(sid, start_str, end_str, conn)
+            if price_df.empty:
+                logger.warning("No price data for %s, skipping", sid)
+                continue
+
+            broker_df = filter_by_volume_share(broker_df, price_df, broker_cfg["volume_share_min_pct"])
+            signals = broker_signal.signal_dates(
+                broker_df,
+                streak_min_days=broker_cfg["streak_min_days"],
+                allow_gap_days=broker_cfg["streak_allow_gap_days"],
+                lookback_days=lookback,
+            )
+            logger.info("%s: %d buy-streak signal dates found", sid, len(signals))
+
+            all_dates = set(price_df["date"])
+
+            stock_signal_pairs.append((price_df, signals))
+            stock_baseline_pairs.append((price_df, all_dates))
+            per_stock_results[sid] = backtest.run(price_df, signals, holding_days_list)
+            per_stock_baseline[sid] = backtest.run(price_df, all_dates, holding_days_list)
         except Exception as exc:
-            # A per-stock crash used to take down the whole batch, discarding
-            # everything already fetched for earlier stocks (see run
-            # 2026-07-03 11:xx: 13 stocks and ~40min of history backfill lost
-            # to a single rate-limit error on stock #14). Skip this stock and
-            # keep going instead — incremental caching means the next run
-            # only needs to re-fetch what's still missing.
-            logger.error("%s: fetch failed, skipping this run — %s", sid, exc)
+            # A per-stock crash (fetch failure, or an unexpected data shape in
+            # the signal/backtest math further down) used to take down the
+            # whole batch, discarding everything already processed for earlier
+            # stocks (lost ~40min of history backfill this way on 2026-07-03
+            # when stock #14 hit a rate limit). Skip this stock and keep
+            # going — incremental caching means the next run only re-fetches
+            # what's still missing.
+            logger.error("%s: failed, skipping this run — %s", sid, exc)
             if "upper limit" in str(exc).lower():
                 logger.error(
                     "FinMind rate limit reached — stopping early. Re-run later; "
@@ -226,26 +246,6 @@ def main() -> None:
                 )
                 break
             continue
-
-        if price_df.empty:
-            logger.warning("No price data for %s, skipping", sid)
-            continue
-
-        broker_df = filter_by_volume_share(broker_df, price_df, broker_cfg["volume_share_min_pct"])
-        signals = broker_signal.signal_dates(
-            broker_df,
-            streak_min_days=broker_cfg["streak_min_days"],
-            allow_gap_days=broker_cfg["streak_allow_gap_days"],
-            lookback_days=lookback,
-        )
-        logger.info("%s: %d buy-streak signal dates found", sid, len(signals))
-
-        all_dates = set(price_df["date"])
-
-        stock_signal_pairs.append((price_df, signals))
-        stock_baseline_pairs.append((price_df, all_dates))
-        per_stock_results[sid] = backtest.run(price_df, signals, holding_days_list)
-        per_stock_baseline[sid] = backtest.run(price_df, all_dates, holding_days_list)
 
     conn.close()
 

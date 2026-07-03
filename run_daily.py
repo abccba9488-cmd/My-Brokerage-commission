@@ -67,9 +67,24 @@ def load_credibility() -> dict:
     return data.get("stocks", {})
 
 
+_government_bank_attempted: set[str] = set()
+
+
 def ensure_government_bank_data(conn, date: str) -> None:
     """八大行庫 data is market-wide per date, so only the first stock in a run
-    actually triggers a fetch — every other stock hits this cache check."""
+    actually triggers a fetch — every other stock hits this cache check.
+
+    That only holds if the fetch actually succeeds, though: an empty result
+    (e.g. a rate-limit error swallowed inside fetch_government_bank.fetch())
+    writes nothing to the DB, so the "do we already have this date" check
+    would keep failing and every remaining stock would retry the same
+    doomed request. Track attempted dates in-process so a failure is only
+    ever tried once per run, regardless of outcome.
+    """
+    if date in _government_bank_attempted:
+        return
+    _government_bank_attempted.add(date)
+
     cur = conn.execute("SELECT 1 FROM government_bank WHERE date = ? LIMIT 1", (date,))
     if cur.fetchone() is not None:
         return
