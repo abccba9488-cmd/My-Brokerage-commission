@@ -75,41 +75,82 @@ def fetch_and_cache_history(sid: str, start_date: str, end_date: str, conn) -> t
     return price_df, broker_df
 
 
-def render_report(per_stock: dict, pooled: dict, run_date: str, days: int) -> str:
+def _table_rows(results: dict) -> list[str]:
+    rows = []
+    for h, r in results.items():
+        if r.get("sample_count", 0) == 0:
+            rows.append(f"| {h} | 0 | - | - | - | - |")
+        else:
+            rows.append(
+                f"| {h} | {r['sample_count']} | {r['win_rate_pct']}% | "
+                f"{r['avg_return_pct']:+.2f}% | {r['median_return_pct']:+.2f}% | {r['max_drawdown_pct']:.2f}% |"
+            )
+    return rows
+
+
+def _edge_rows(signal: dict, baseline: dict) -> list[str]:
+    """Signal stats minus the 'enter on any random day' baseline — this is
+    what actually tells you whether the signal beats just holding the stock,
+    versus merely riding the same period's general drift."""
+    rows = []
+    for h in signal:
+        s, b = signal[h], baseline.get(h, {})
+        if s.get("sample_count", 0) == 0 or b.get("sample_count", 0) == 0:
+            rows.append(f"| {h} | - | - |")
+            continue
+        win_edge = s["win_rate_pct"] - b["win_rate_pct"]
+        ret_edge = s["avg_return_pct"] - b["avg_return_pct"]
+        rows.append(f"| {h} | {win_edge:+.1f}pp | {ret_edge:+.2f}pp |")
+    return rows
+
+
+def render_report(per_stock: dict, pooled: dict, baseline_per_stock: dict, baseline_pooled: dict, run_date: str, days: int) -> str:
     lines = [
         f"# 分點連續買超訊號回測報告 — {run_date}",
         "",
         f"訊號定義：任一券商分點連續買超 >= 門檻天數（見 config/stocks.yaml `broker.streak_min_days`），"
         f"回測範圍約 {days} 個日曆天。",
         "",
-        "## 全部股票合併結果（樣本數較大，較能代表整體）",
+        "**基準線**：同一檔股票、同一段期間，如果不看訊號、每個交易日都進場，平均會是什麼結果。"
+        "訊號要贏過基準線，才算是真的有鑑別度，不然只是搭上這段期間股價本身的漲勢。",
         "",
+        "## 全部股票合併結果",
+        "",
+        "### 訊號進場",
         "| 持有天數 | 樣本數 | 勝率 | 平均報酬 | 中位數報酬 | 最大回撤 |",
         "|---|---|---|---|---|---|",
+        *_table_rows(pooled),
+        "",
+        "### 基準線（每日進場）",
+        "| 持有天數 | 樣本數 | 勝率 | 平均報酬 | 中位數報酬 | 最大回撤 |",
+        "|---|---|---|---|---|---|",
+        *_table_rows(baseline_pooled),
+        "",
+        "### 訊號相對基準線的優勢（正值＝訊號比亂買好）",
+        "| 持有天數 | 勝率差 | 平均報酬差 |",
+        "|---|---|---|",
+        *_edge_rows(pooled, baseline_pooled),
     ]
-    for h, r in pooled.items():
-        if r.get("sample_count", 0) == 0:
-            lines.append(f"| {h} | 0 | - | - | - | - |")
-        else:
-            lines.append(
-                f"| {h} | {r['sample_count']} | {r['win_rate_pct']}% | "
-                f"{r['avg_return_pct']:+.2f}% | {r['median_return_pct']:+.2f}% | {r['max_drawdown_pct']:.2f}% |"
-            )
 
     lines += ["", "## 個股明細", ""]
     for sid, results in per_stock.items():
+        baseline = baseline_per_stock.get(sid, {})
         lines.append(f"### {sid}")
         lines.append("")
+        lines.append("訊號進場：")
         lines.append("| 持有天數 | 樣本數 | 勝率 | 平均報酬 | 中位數報酬 | 最大回撤 |")
         lines.append("|---|---|---|---|---|---|")
-        for h, r in results.items():
-            if r.get("sample_count", 0) == 0:
-                lines.append(f"| {h} | 0 | - | - | - | - |")
-            else:
-                lines.append(
-                    f"| {h} | {r['sample_count']} | {r['win_rate_pct']}% | "
-                    f"{r['avg_return_pct']:+.2f}% | {r['median_return_pct']:+.2f}% | {r['max_drawdown_pct']:.2f}% |"
-                )
+        lines += _table_rows(results)
+        lines.append("")
+        lines.append("基準線（每日進場）：")
+        lines.append("| 持有天數 | 樣本數 | 勝率 | 平均報酬 | 中位數報酬 | 最大回撤 |")
+        lines.append("|---|---|---|---|---|---|")
+        lines += _table_rows(baseline)
+        lines.append("")
+        lines.append("訊號相對基準線的優勢：")
+        lines.append("| 持有天數 | 勝率差 | 平均報酬差 |")
+        lines.append("|---|---|---|")
+        lines += _edge_rows(results, baseline)
         lines.append("")
 
     return "\n".join(lines)
@@ -137,7 +178,9 @@ def main() -> None:
     holding_days_list = config["backtest"]["holding_days"]
 
     stock_signal_pairs = []
+    stock_baseline_pairs = []
     per_stock_results = {}
+    per_stock_baseline = {}
 
     for stock in config["stocks"]:
         sid = stock["code"]
@@ -155,15 +198,20 @@ def main() -> None:
         )
         logger.info("%s: %d buy-streak signal dates found", sid, len(signals))
 
+        all_dates = set(price_df["date"])
+
         stock_signal_pairs.append((price_df, signals))
+        stock_baseline_pairs.append((price_df, all_dates))
         per_stock_results[sid] = backtest.run(price_df, signals, holding_days_list)
+        per_stock_baseline[sid] = backtest.run(price_df, all_dates, holding_days_list)
 
     conn.close()
 
     pooled = backtest.run_multi(stock_signal_pairs, holding_days_list)
+    baseline_pooled = backtest.run_multi(stock_baseline_pairs, holding_days_list)
 
     run_date = end_date.strftime("%Y-%m-%d")
-    report = render_report(per_stock_results, pooled, run_date, args.days)
+    report = render_report(per_stock_results, pooled, per_stock_baseline, baseline_pooled, run_date, args.days)
     out_path = REPORTS_DIR / f"backtest_{run_date}.md"
     out_path.write_text(report, encoding="utf-8")
     print(report)
