@@ -10,14 +10,14 @@ the same way run_daily.py windows broker_df in production.
 """
 from __future__ import annotations
 
-from src.indicators.broker_streak import _daily_net
+from src.indicators.broker_streak import daily_net
 
 
 def signal_dates(broker_df, streak_min_days: int, allow_gap_days: int, lookback_days: int) -> set[str]:
     if broker_df.empty:
         return set()
 
-    daily = _daily_net(broker_df)
+    daily = daily_net(broker_df)
     dates_out: set[str] = set()
 
     for _, g in daily.groupby("broker_id"):

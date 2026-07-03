@@ -28,7 +28,7 @@ def filter_by_volume_share(broker_df: pd.DataFrame, price_df: pd.DataFrame, min_
     return broker_df.merge(keep, on=["broker_id", "date"], how="inner")
 
 
-def _daily_net(broker_df: pd.DataFrame) -> pd.DataFrame:
+def daily_net(broker_df: pd.DataFrame) -> pd.DataFrame:
     df = broker_df.groupby(["broker_id", "broker_name", "date"], as_index=False).agg(
         buy_shares=("buy_shares", "sum"),
         sell_shares=("sell_shares", "sum"),
@@ -44,7 +44,7 @@ def compute(broker_df: pd.DataFrame, streak_min_days: int, allow_gap_days: int) 
             "broker_id", "broker_name", "streak_days", "direction", "trend", "total_net"
         ])
 
-    daily = _daily_net(broker_df)
+    daily = daily_net(broker_df)
     results = []
     for broker_id, g in daily.groupby("broker_id"):
         g = g.sort_values("date")
