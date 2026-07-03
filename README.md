@@ -53,16 +53,40 @@ results = backtest.run(price_df, signals, holding_days_list=[3, 5, 10, 20])
 
 **在信任任何指標之前，先用這個框架驗證它在你關注的股票上是否真的有統計優勢**——尤其是分點相關的指標，目前的權重（`accumulation_score.py`／`chip_health.py`）都是規則式假設，不是回測校準出來的。
 
+### 分點連續買超訊號：實測結果（2026-07-03，近1年，5檔股票）
+
+跑 `python run_backtest.py --days 365` 對「分點連續買超」訊號做了完整回測，重點結論：
+
+- **單看訊號本身**看起來不錯（20日後勝率61%），但加上「每天都進場」的基準線對照後，訊號真正贏過基準線的部分只有 1~2 個百分點——大部分表現其實是這一年股價整體上漲的順風車，不是訊號本身的功勞。
+- **5 檔股票表現差異很大**：鴻海（2317）有明確、一致的優勢；台積電／聯發科／長榮優勢薄弱或只在長天期出現；玉山金（2884）完全沒有優勢，訊號比亂猜還差。
+- 因此新增了**訊號可信度分級**（見下）——不要對所有股票的訊號一視同仁。
+
+完整報表在 `reports/backtest_YYYY-MM-DD.md`，跑一次會重新產生。
+
+### 訊號可信度分級（A/B/C/D）
+
+`run_backtest.py` 跑完後，會用「10日／20日相對基準線的優勢＋粗估交易成本門檻」自動評級（邏輯見 `src/backtest/credibility.py`），寫入 `config/signal_credibility.yaml`：
+
+- **A**：10日與20日的勝率、報酬都優於基準線，且報酬扣掉約 0.6% 交易成本估算後仍有空間
+- **B**：方向正確但優勢較小，或報酬接近交易成本門檻
+- **C**：優勢不一致或接近 0，看不出訊號比隨機進場更好
+- **D**：訊號比基準線差，不建議依此訊號進出場
+- **N/A**：樣本數不足或尚未回測
+
+`run_daily.py` 會自動讀取這個檔案，把可信度標示在每天報表的每一檔股票旁邊（包含停損訊號，因為停損用的也是同一套分點成本估算）。**沒有 A/B 級佐證的訊號不要直接當作進出場依據**。這個檔案是自動產生的，不要手動改——想更新評級就重跑一次 `run_backtest.py`。
+
 ## 專案結構
 
 ```
-config/stocks.yaml     股票清單與所有可調參數
-src/ingest/             資料擷取（FinMind）
-src/storage/db.py       SQLite schema 與存取
-src/indicators/         各項籌碼指標計算
-src/backtest/           訊號回測框架
-src/report/render.py    Markdown/CSV 報表輸出
-run_daily.py             主入口
+config/stocks.yaml               股票清單與所有可調參數
+config/signal_credibility.yaml   訊號可信度分級（自動產生，勿手動改）
+src/ingest/                       資料擷取（FinMind）
+src/storage/db.py                 SQLite schema 與存取
+src/indicators/                   各項籌碼指標計算
+src/backtest/                     訊號回測框架＋可信度評級邏輯
+src/report/render.py              Markdown/CSV 報表輸出
+run_daily.py                       每日報表主入口
+run_backtest.py                    回測與可信度評級主入口
 ```
 
 ## 已知限制（Phase 1 範圍）
