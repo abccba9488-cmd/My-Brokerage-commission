@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -55,6 +56,11 @@ def fetch_and_cache_history(sid: str, start_date: str, end_date: str, conn) -> t
     new_rows: list[dict] = []
     for i, trade_date in enumerate(missing_dates):
         new_rows.extend(fetch_broker.fetch(sid, trade_date))
+        # Small throttle: observed per-request latency alone (~0.55s) already sits
+        # right at FinMind's 6000/hour Sponsor ceiling. A large watchlist's first-time
+        # history backfill can be thousands of requests back-to-back, so pad each
+        # call slightly to keep the sustained rate safely under the limit.
+        time.sleep(0.15)
         if (i + 1) % 20 == 0:
             db.upsert_rows(conn, "broker_trade", new_rows)
             new_rows = []
