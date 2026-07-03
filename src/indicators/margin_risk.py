@@ -25,7 +25,7 @@ def compute(price_df: pd.DataFrame, margin_df: pd.DataFrame, lookback_days: int,
     """
     df = price_df.merge(margin_df[["date", "margin_buy", "margin_balance"]], on="date", how="left")
     df = df.sort_values("date").reset_index(drop=True)
-    df["margin_buy"] = df["margin_buy"].fillna(0)
+    df["margin_buy"] = pd.to_numeric(df["margin_buy"], errors="coerce").fillna(0)
 
     weighted_cost = []
     for i in range(len(df)):
