@@ -3,25 +3,30 @@
 
 Reads entirely from the local SQLite cache (data/chips.db) — assumes
 run_backtest.py has already been run so price/institutional/broker history
-is populated. Does not call FinMind at all.
+is populated. Does not call FinMind at all, which is what makes it safe to
+parallelize across stocks: each worker process opens its own read-only
+connection (SQLite WAL mode supports concurrent readers), so there's no
+API rate-limit risk like there is with the live-fetch backtest scripts.
 
 Usage:
-    python run_backtest_composite.py [--days N]
+    python run_backtest_composite.py [--days N] [--workers N]
 """
 from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sqlite3
 import sys
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
 import yaml
 
-from src.backtest import backtest, composite_signal, credibility
+from src.backtest import backtest, composite_signal, credibility, significance
 from src.storage import db
 
 try:
@@ -55,6 +60,48 @@ def load_from_cache(conn: sqlite3.Connection, sid: str, start_date: str, end_dat
         conn, params=(sid, start_date, end_date),
     )
     return price_df, inst_df, broker_df
+
+
+def _process_stock(args: tuple) -> dict:
+    """Runs in a worker process — opens its own DB connection (sqlite3
+    connections aren't fork/pickle-safe, so each process needs its own)."""
+    sid, start_str, end_str, lookback, config, holding_days_list = args
+    t0 = time.time()
+    conn = db.get_connection()
+    try:
+        price_df, inst_df, broker_df = load_from_cache(conn, sid, start_str, end_str)
+        if price_df.empty:
+            return {"sid": sid, "error": "no cached price data"}
+
+        signals = composite_signal.signal_dates(price_df, inst_df, broker_df, lookback, config)
+        all_dates = set(price_df["date"])
+
+        results = backtest.run(price_df, signals, holding_days_list)
+        baseline = backtest.run(price_df, all_dates, holding_days_list)
+
+        # Mann-Whitney at 20-day holding, feeding cross-stock FDR correction below —
+        # same rigor as run_backtest.py's single-condition test (see credibility.grade).
+        sig_trades_20d = backtest.trades_for_holding(price_df, signals, 20)
+        base_trades_20d = backtest.trades_for_holding(price_df, all_dates, 20)
+        mw = significance.mann_whitney_test(
+            [t["return_pct"] for t in sig_trades_20d], [t["return_pct"] for t in base_trades_20d]
+        )
+
+        return {
+            "sid": sid,
+            "price_df": price_df,
+            "signals": signals,
+            "all_dates": all_dates,
+            "results": results,
+            "baseline": baseline,
+            "n_signals": len(signals),
+            "elapsed": time.time() - t0,
+            "p_value": mw["p_value"],
+        }
+    except Exception as exc:
+        return {"sid": sid, "error": str(exc)}
+    finally:
+        conn.close()
 
 
 def render_report(per_stock: dict, pooled: dict, baseline_per_stock: dict, baseline_pooled: dict, grades: dict, run_date: str) -> str:
@@ -128,6 +175,10 @@ def render_report(per_stock: dict, pooled: dict, baseline_per_stock: dict, basel
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--days", type=int, default=365)
+    parser.add_argument(
+        "--workers", type=int, default=None,
+        help="parallel worker processes (default: all logical CPUs) — safe because this script never calls FinMind",
+    )
     args = parser.parse_args()
 
     config = load_config()
@@ -138,38 +189,32 @@ def main() -> None:
     start_date = end_date - timedelta(days=args.days)
     end_str, start_str = end_date.strftime("%Y-%m-%d"), start_date.strftime("%Y-%m-%d")
 
-    conn = db.get_connection()
+    stocks = config["stocks"]
+    workers = args.workers or os.cpu_count()
+    logger.info("Running %d stocks across %d worker processes", len(stocks), workers)
 
     stock_signal_pairs, stock_baseline_pairs = [], []
     per_stock_results, per_stock_baseline = {}, {}
 
-    stocks = config["stocks"]
-    for idx, stock in enumerate(stocks, 1):
-        sid = stock["code"]
-        t0 = time.time()
-        try:
-            price_df, inst_df, broker_df = load_from_cache(conn, sid, start_str, end_str)
-            if price_df.empty:
-                logger.warning("%s: no cached price data, skipping", sid)
+    tasks = [(stock["code"], start_str, end_str, lookback, config, holding_days_list) for stock in stocks]
+
+    done = 0
+    per_stock_pvalue: dict[str, float] = {}
+    with ProcessPoolExecutor(max_workers=workers) as pool:
+        futures = {pool.submit(_process_stock, t): t[0] for t in tasks}
+        for fut in as_completed(futures):
+            sid = futures[fut]
+            r = fut.result()
+            done += 1
+            if "error" in r:
+                logger.error("[%d/%d] %s: failed, skipping — %s", done, len(stocks), sid, r["error"])
                 continue
-
-            signals = composite_signal.signal_dates(price_df, inst_df, broker_df, lookback, config)
-            all_dates = set(price_df["date"])
-
-            stock_signal_pairs.append((price_df, signals))
-            stock_baseline_pairs.append((price_df, all_dates))
-            per_stock_results[sid] = backtest.run(price_df, signals, holding_days_list)
-            per_stock_baseline[sid] = backtest.run(price_df, all_dates, holding_days_list)
-
-            logger.info(
-                "[%d/%d] %s: %d composite BUY signals found (%.1fs)",
-                idx, len(stocks), sid, len(signals), time.time() - t0,
-            )
-        except Exception as exc:
-            logger.error("%s: failed, skipping — %s", sid, exc)
-            continue
-
-    conn.close()
+            stock_signal_pairs.append((r["price_df"], r["signals"]))
+            stock_baseline_pairs.append((r["price_df"], r["all_dates"]))
+            per_stock_results[sid] = r["results"]
+            per_stock_baseline[sid] = r["baseline"]
+            per_stock_pvalue[sid] = r["p_value"]
+            logger.info("[%d/%d] %s: %d composite BUY signals found (%.1fs)", done, len(stocks), sid, r["n_signals"], r["elapsed"])
 
     if not per_stock_results:
         logger.error("No stocks produced results.")
@@ -178,13 +223,20 @@ def main() -> None:
     pooled = backtest.run_multi(stock_signal_pairs, holding_days_list)
     baseline_pooled = backtest.run_multi(stock_baseline_pairs, holding_days_list)
 
+    # FDR=10%, same exploratory-screen rationale as run_backtest.py (see significance.py).
+    bh_results = significance.benjamini_hochberg(per_stock_pvalue, fdr=0.10) if per_stock_pvalue else {}
+
     grades = {}
     for sid, results in per_stock_results.items():
         baseline = per_stock_baseline[sid]
+        fdr_significant = bh_results.get(sid, {}).get("significant")
         if 10 in results and 20 in results:
-            grades[sid] = credibility.grade(results[10], baseline[10], results[20], baseline[20])
+            grades[sid] = credibility.grade(results[10], baseline[10], results[20], baseline[20], fdr_significant)
         else:
             grades[sid] = {"grade": "N/A", "reason": "缺少10日或20日持有期資料"}
+        if sid in per_stock_pvalue:
+            grades[sid]["fdr_p_value"] = round(per_stock_pvalue[sid], 4)
+            grades[sid]["fdr_significant"] = fdr_significant
 
     run_date = end_date.strftime("%Y-%m-%d")
     CREDIBILITY_PATH.write_text(

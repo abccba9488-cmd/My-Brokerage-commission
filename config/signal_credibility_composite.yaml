@@ -1,117 +1,195 @@
-generated_from_backtest_date: '2026-07-03'
-backtest_window_days: 365
+generated_from_backtest_date: '2026-07-04'
+backtest_window_days: 1095
 stocks:
-  '1618':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
-  '2425':
-    grade: D
-    reason: 訊號比基準線差（10日勝率差-11.3pp／20日-4.9pp），不建議依此訊號進出場
-  '2637':
-    grade: D
-    reason: 訊號比基準線差（10日勝率差-11.8pp／20日-29.9pp），不建議依此訊號進出場
-  '3066':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
-  '3576':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
-  '5351':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
-  '6770':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
   '7794':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
-  '1609':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
-  '2408':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
-  '2451':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
-  '2465':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
-  '2542':
     grade: D
-    reason: 訊號比基準線差（10日勝率差-1.2pp／20日+26.1pp），不建議依此訊號進出場
-  '2615':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
-  '3006':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
+    reason: 訊號比基準線差（10日勝率差-5.1pp／20日-2.1pp），不建議依此訊號進出場
+    fdr_p_value: 0.5657
+    fdr_significant: false
+  '7842':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-2.8pp／20日+12.1pp），不建議依此訊號進出場
+    fdr_p_value: 0.0657
+    fdr_significant: false
+  '1435':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-6.7pp／20日-9.2pp），不建議依此訊號進出場
+    fdr_p_value: 0.9948
+    fdr_significant: false
+  '7712':
+    grade: B
+    reason: 優勢數字看起來像 A 級（10日+29.1pp／20日+15.1pp），但經 FDR 校正後不具統計顯著性（可能是運氣），上限降為 B——單看邊際數字會高估可信度
+    fdr_p_value: 0.0326
+    fdr_significant: false
+  '5468':
+    grade: C
+    reason: 優勢不一致或接近0，目前資料看不出訊號比隨機進場更好
+    fdr_p_value: 0.5277
+    fdr_significant: false
+  '6259':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-10.0pp／20日-9.0pp），不建議依此訊號進出場
+    fdr_p_value: 0.988
+    fdr_significant: false
+  '3285':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差+3.1pp／20日-3.9pp），不建議依此訊號進出場
+    fdr_p_value: 0.2628
+    fdr_significant: false
+  '2491':
+    grade: A
+    reason: 10日與20日勝率、報酬都優於基準線（10日+14.8pp／20日+14.3pp），報酬扣掉約0.6%交易成本估算後仍有空間，且經 FDR
+      校正後統計顯著
+    fdr_p_value: 0.0005
+    fdr_significant: true
+  '8476':
+    grade: B
+    reason: 方向上優於基準線但優勢較小或報酬接近交易成本門檻（10日+7.4pp／20日+1.2pp）
+    fdr_p_value: 0.1897
+    fdr_significant: false
+  '2061':
+    grade: B
+    reason: 方向上優於基準線但優勢較小或報酬接近交易成本門檻（10日+2.8pp／20日+8.8pp）
+    fdr_p_value: 0.013
+    fdr_significant: true
+  '6922':
+    grade: B
+    reason: 方向上優於基準線但優勢較小或報酬接近交易成本門檻（10日+11.9pp／20日+0.6pp）
+    fdr_p_value: 0.4001
+    fdr_significant: false
+  '6576':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差+0.1pp／20日-2.6pp），不建議依此訊號進出場
+    fdr_p_value: 0.4387
+    fdr_significant: false
+  '3652':
+    grade: B
+    reason: 方向上優於基準線但優勢較小或報酬接近交易成本門檻（10日+3.7pp／20日+12.0pp）
+    fdr_p_value: 0.0031
+    fdr_significant: true
+  '3066':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-5.0pp／20日-3.5pp），不建議依此訊號進出場
+    fdr_p_value: 0.3928
+    fdr_significant: false
+  '6226':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-7.4pp／20日-8.4pp），不建議依此訊號進出場
+    fdr_p_value: 0.7144
+    fdr_significant: false
+  '8438':
+    grade: B
+    reason: 優勢數字看起來像 A 級（10日+8.2pp／20日+7.5pp），但經 FDR 校正後不具統計顯著性（可能是運氣），上限降為 B——單看邊際數字會高估可信度
+    fdr_p_value: 0.1105
+    fdr_significant: false
+  '6432':
+    grade: C
+    reason: 優勢不一致或接近0，目前資料看不出訊號比隨機進場更好
+    fdr_p_value: 0.722
+    fdr_significant: false
+  '4716':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-7.8pp／20日-8.5pp），不建議依此訊號進出場
+    fdr_p_value: 0.5239
+    fdr_significant: false
+  '2478':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-9.6pp／20日-12.5pp），不建議依此訊號進出場
+    fdr_p_value: 0.7317
+    fdr_significant: false
+  '6175':
+    grade: A
+    reason: 10日與20日勝率、報酬都優於基準線（10日+42.6pp／20日+29.2pp），報酬扣掉約0.6%交易成本估算後仍有空間，且經 FDR
+      校正後統計顯著
+    fdr_p_value: 0.002
+    fdr_significant: true
   '3088':
     grade: N/A
     reason: 樣本數不足（<20次），無法評級
-  '6576':
-    grade: D
-    reason: 訊號比基準線差（10日勝率差-4.6pp／20日-9.8pp），不建議依此訊號進出場
-  '6757':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
-  '6922':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
-  '7842':
-    grade: D
-    reason: 訊號比基準線差（10日勝率差-3.5pp／20日+10.9pp），不建議依此訊號進出場
-  '1435':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
-  '4716':
-    grade: D
-    reason: 訊號比基準線差（10日勝率差-7.0pp／20日-14.9pp），不建議依此訊號進出場
-  '5468':
-    grade: D
-    reason: 訊號比基準線差（10日勝率差-1.3pp／20日-16.8pp），不建議依此訊號進出場
-  '6226':
-    grade: D
-    reason: 訊號比基準線差（10日勝率差+0.6pp／20日+11.6pp），不建議依此訊號進出場
-  '8476':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
-  '3285':
-    grade: D
-    reason: 訊號比基準線差（10日勝率差+1.3pp／20日-6.4pp），不建議依此訊號進出場
-  '2061':
-    grade: C
-    reason: 優勢不一致或接近0，目前資料看不出訊號比隨機進場更好
-  '2303':
-    grade: D
-    reason: 訊號比基準線差（10日勝率差-7.3pp／20日+21.2pp），不建議依此訊號進出場
-  '2478':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
-  '2491':
-    grade: A
-    reason: 10日與20日勝率、報酬都優於基準線（10日+27.3pp／20日+37.6pp），且平均報酬扣掉約0.6%交易成本估算後仍有空間
-  '3481':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
-  '3652':
-    grade: B
-    reason: 方向上優於基準線但優勢較小或報酬接近交易成本門檻（10日+0.6pp／20日+2.3pp）
-  '6175':
-    grade: N/A
-    reason: 樣本數不足（<20次），無法評級
-  '6259':
-    grade: D
-    reason: 訊號比基準線差（10日勝率差-1.8pp／20日-10.5pp），不建議依此訊號進出場
-  '6432':
-    grade: D
-    reason: 訊號比基準線差（10日勝率差+1.7pp／20日-4.3pp），不建議依此訊號進出場
+    fdr_p_value: 0.0034
+    fdr_significant: true
   '6672':
     grade: N/A
     reason: 樣本數不足（<20次），無法評級
-  '7712':
+    fdr_p_value: 0.8322
+    fdr_significant: false
+  '2425':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-1.7pp／20日+3.9pp），不建議依此訊號進出場
+    fdr_p_value: 0.6273
+    fdr_significant: false
+  '6757':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-3.1pp／20日+13.4pp），不建議依此訊號進出場
+    fdr_p_value: 0.0323
+    fdr_significant: false
+  '2465':
     grade: N/A
     reason: 樣本數不足（<20次），無法評級
-  '8438':
+    fdr_p_value: 1.0
+    fdr_significant: false
+  '2451':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-6.7pp／20日+5.5pp），不建議依此訊號進出場
+    fdr_p_value: 0.7599
+    fdr_significant: false
+  '1618':
     grade: N/A
     reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.9119
+    fdr_significant: false
+  '3576':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.648
+    fdr_significant: false
+  '2542':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-13.9pp／20日+1.3pp），不建議依此訊號進出場
+    fdr_p_value: 0.9105
+    fdr_significant: false
+  '2637':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-8.6pp／20日-18.2pp），不建議依此訊號進出場
+    fdr_p_value: 0.9985
+    fdr_significant: false
+  '5351':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 1.0
+    fdr_significant: false
+  '3006':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.3143
+    fdr_significant: false
+  '1609':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.1722
+    fdr_significant: false
+  '2615':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.8963
+    fdr_significant: false
+  '6770':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.0124
+    fdr_significant: true
+  '3481':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.0
+    fdr_significant: true
+  '2408':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.0184
+    fdr_significant: true
+  '2303':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-3.8pp／20日+17.0pp），不建議依此訊號進出場
+    fdr_p_value: 0.0002
+    fdr_significant: true

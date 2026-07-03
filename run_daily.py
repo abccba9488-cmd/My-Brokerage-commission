@@ -52,7 +52,16 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 CONFIG_PATH = Path(__file__).parent / "config" / "stocks.yaml"
-CREDIBILITY_PATH = Path(__file__).parent / "config" / "signal_credibility.yaml"
+# run_daily.py's actual BUY/STOP_LOSS/TAKE_PROFIT action comes from
+# entry_exit_signal's composite rule (>=4/5 conditions), so the credibility
+# grade shown alongside it must come from the backtest of THAT rule
+# (run_backtest_composite.py), not the single-condition broker-streak-only
+# backtest (run_backtest.py) — those are different signals with different
+# results (e.g. the composite backtest found 2 FDR-significant A grades
+# that the single-condition test never found). Grading the wrong rule would
+# show a credibility badge that doesn't describe what actually produced the
+# displayed action.
+CREDIBILITY_PATH = Path(__file__).parent / "config" / "signal_credibility_composite.yaml"
 
 NO_BACKTEST_YET = {"grade": "N/A", "reason": "尚未執行過回測（見 run_backtest.py），訊號可信度未知"}
 
