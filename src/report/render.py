@@ -53,6 +53,10 @@ _CSV_FIELD_LABELS = {
     "broker_cost": "主力成本(元)",
     "broker_pnl_pct": "主力損益(%)",
     "sell_alert": "出貨警報",
+    "foreign_cost": "外資成本線(元)",
+    "foreign_cost_deviation_pct": "外資成本乖離(%)",
+    "trust_cost": "投信成本線(元)",
+    "trust_cost_deviation_pct": "投信成本乖離(%)",
 }
 
 _CSV_ACTION_LABELS = {"STOP_LOSS": "停損", "TAKE_PROFIT": "停利", "BUY": "買進", "HOLD": "觀望"}
@@ -67,6 +71,21 @@ def _final_action(r: dict) -> str:
     if r["exit_signal"]["action"] in ("STOP_LOSS", "TAKE_PROFIT"):
         return r["exit_signal"]["action"]
     return r["entry_signal"]["action"]
+
+
+_INST_LABELS = {"foreign": "外資", "trust": "投信", "dealer": "自營商"}
+
+
+def _institutional_cost_line(inst_cost: dict) -> str:
+    """法人成本線：DISPLAY-only, not yet backtested — see institutional_cost.py docstring."""
+    if not inst_cost:
+        return "- 法人成本線：無資料"
+    parts = [
+        f"{_INST_LABELS[label]} {v['cost']} 元（乖離 {v['deviation_pct']:+.1f}%，{v['zone']}）"
+        for label, v in inst_cost.items() if label in _INST_LABELS
+    ]
+    quarter_note = "　⚠️ 近季底，留意投信護盤/作帳行情" if inst_cost.get("near_quarter_end") else ""
+    return f"- 法人成本線：{'　'.join(parts)}{quarter_note}"
 
 
 def _stock_section(r: dict) -> str:
@@ -98,6 +117,7 @@ def _stock_section(r: dict) -> str:
         + ("　⚠️ 假突破風險" if r["volume_price"].get("false_breakout_risk") else ""),
         f"- 外資／投信買賣超：{r['foreign_net']:+,} / {r['trust_net']:+,} 張",
         f"- 八大行庫買賣超：{r['government_bank_net']:+,} 股",
+        _institutional_cost_line(r["institutional_cost"]),
         (
             f"- 大戶持股（400張以上）：{r['major_holder_pct']}%（{_HOLDER_TREND_LABELS.get(r['major_holder_trend'], '')}）"
             if r["major_holder_pct"] is not None
@@ -157,6 +177,7 @@ def render_csv(results: list[dict], path: Path) -> None:
             false_breakout = r["volume_price"].get("false_breakout_risk")
             broker_available = r["broker_available"]
             sell_alert = r["sell_alert"]["alert"]
+            inst_cost = r["institutional_cost"]
             writer.writerow({
                 "stock_id": r["stock_id"],
                 "name": r["name"],
@@ -183,6 +204,10 @@ def render_csv(results: list[dict], path: Path) -> None:
                 "broker_cost": r["broker_cost"].get("cost"),
                 "broker_pnl_pct": r["broker_cost"].get("pnl_pct"),
                 "sell_alert": _CSV_BOOL_LABELS.get(sell_alert, sell_alert),
+                "foreign_cost": inst_cost.get("foreign", {}).get("cost"),
+                "foreign_cost_deviation_pct": inst_cost.get("foreign", {}).get("deviation_pct"),
+                "trust_cost": inst_cost.get("trust", {}).get("cost"),
+                "trust_cost_deviation_pct": inst_cost.get("trust", {}).get("deviation_pct"),
             })
 
 

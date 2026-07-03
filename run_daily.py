@@ -35,6 +35,7 @@ from src.indicators import (
     chip_health,
     concentration,
     entry_exit_signal,
+    institutional_cost,
     margin_risk,
     signal_light,
     volume_price,
@@ -178,6 +179,7 @@ def analyze_stock(stock: dict, start_date: str, end_date: str, config: dict, con
 
     mr = margin_risk.latest(price_df, margin_df, lookback, config)
     vp = volume_price.latest(price_df, lookback)
+    inst_cost = institutional_cost.latest(price_df.tail(lookback), inst_df, lookback)
 
     latest_close = float(price_df["close"].iloc[-1])
     # FinMind returns institutional buy/sell in shares; convert to 張 (board lots, 1張=1000股) for display.
@@ -298,6 +300,7 @@ def analyze_stock(stock: dict, start_date: str, end_date: str, config: dict, con
         "major_holder_pct": latest_major_holder_pct,
         "major_holder_trend": major_holder_trend,
         "government_bank_net": government_bank_net,
+        "institutional_cost": inst_cost,
     }
 
 
