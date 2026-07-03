@@ -271,10 +271,15 @@ def main() -> None:
             # going — incremental caching means the next run only re-fetches
             # what's still missing.
             logger.error("%s: failed, skipping this run — %s", sid, exc)
-            if "upper limit" in str(exc).lower():
+            exc_lower = str(exc).lower()
+            if "upper limit" in exc_lower or "ip banned" in exc_lower or "banned" in exc_lower:
+                # 2026-07-03: hit "ip banned" (not just a rate limit) after two
+                # duplicate fetch processes hammered the API concurrently.
+                # Every subsequent stock failed the same way — no point
+                # burning the rest of the watchlist on a dead connection.
                 logger.error(
-                    "FinMind rate limit reached — stopping early. Re-run later; "
-                    "already-cached stocks/dates won't be re-fetched."
+                    "FinMind blocked this connection (rate limit or IP ban) — stopping early. "
+                    "Re-run later once access is restored; already-cached stocks/dates won't be re-fetched."
                 )
                 break
             continue
