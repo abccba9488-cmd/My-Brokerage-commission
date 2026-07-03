@@ -56,11 +56,11 @@ def fetch_and_cache_history(sid: str, start_date: str, end_date: str, conn) -> t
     new_rows: list[dict] = []
     for i, trade_date in enumerate(missing_dates):
         new_rows.extend(fetch_broker.fetch(sid, trade_date))
-        # Small throttle: observed per-request latency alone (~0.55s) already sits
-        # right at FinMind's 6000/hour Sponsor ceiling. A large watchlist's first-time
-        # history backfill can be thousands of requests back-to-back, so pad each
-        # call slightly to keep the sustained rate safely under the limit.
-        time.sleep(0.15)
+        # Throttle: observed per-request latency alone (~0.55s) already sits right
+        # at FinMind's 6000/hour Sponsor ceiling, and a 38-stock backfill actually
+        # hit the limit at 0.15s padding (partly from run_daily.py using the same
+        # quota concurrently — don't run both at once). More margin here.
+        time.sleep(0.3)
         if (i + 1) % 20 == 0:
             db.upsert_rows(conn, "broker_trade", new_rows)
             new_rows = []
@@ -209,7 +209,24 @@ def main() -> None:
 
     for stock in config["stocks"]:
         sid = stock["code"]
-        price_df, broker_df = fetch_and_cache_history(sid, start_str, end_str, conn)
+        try:
+            price_df, broker_df = fetch_and_cache_history(sid, start_str, end_str, conn)
+        except Exception as exc:
+            # A per-stock crash used to take down the whole batch, discarding
+            # everything already fetched for earlier stocks (see run
+            # 2026-07-03 11:xx: 13 stocks and ~40min of history backfill lost
+            # to a single rate-limit error on stock #14). Skip this stock and
+            # keep going instead — incremental caching means the next run
+            # only needs to re-fetch what's still missing.
+            logger.error("%s: fetch failed, skipping this run — %s", sid, exc)
+            if "upper limit" in str(exc).lower():
+                logger.error(
+                    "FinMind rate limit reached — stopping early. Re-run later; "
+                    "already-cached stocks/dates won't be re-fetched."
+                )
+                break
+            continue
+
         if price_df.empty:
             logger.warning("No price data for %s, skipping", sid)
             continue
@@ -231,6 +248,10 @@ def main() -> None:
         per_stock_baseline[sid] = backtest.run(price_df, all_dates, holding_days_list)
 
     conn.close()
+
+    if not per_stock_results:
+        logger.error("No stocks produced results — nothing to report.")
+        sys.exit(1)
 
     pooled = backtest.run_multi(stock_signal_pairs, holding_days_list)
     baseline_pooled = backtest.run_multi(stock_baseline_pairs, holding_days_list)
