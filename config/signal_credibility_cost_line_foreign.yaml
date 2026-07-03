@@ -1,0 +1,239 @@
+generated_from_backtest_date: '2026-07-04'
+backtest_window_days: 1095
+cost_line_config:
+  investor: foreign
+  cost_trend_window_days: 10
+  entry_min_deviation_pct: 0
+  entry_max_deviation_pct: 5
+  take_profit_deviation_pct: 15
+  stop_loss_deviation_pct: -10
+stocks:
+  '7794':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-3.9pp／20日-3.6pp），不建議依此訊號進出場
+    fdr_p_value: 0.6603
+    fdr_significant: false
+    stable_across_periods: false
+  '7842':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-10.8pp／20日+2.5pp），不建議依此訊號進出場
+    fdr_p_value: 0.3715
+    fdr_significant: false
+    stable_across_periods: false
+  '1435':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-7.0pp／20日-10.4pp），不建議依此訊號進出場
+    fdr_p_value: 0.9892
+    fdr_significant: false
+    stable_across_periods: false
+  '1618':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-10.3pp／20日-7.8pp），不建議依此訊號進出場
+    fdr_p_value: 0.8842
+    fdr_significant: false
+    stable_across_periods: false
+  '3066':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-4.3pp／20日-10.2pp），不建議依此訊號進出場
+    fdr_p_value: 0.9579
+    fdr_significant: false
+    stable_across_periods: false
+  '2425':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-6.1pp／20日-14.8pp），不建議依此訊號進出場
+    fdr_p_value: 0.9839
+    fdr_significant: false
+    stable_across_periods: false
+  '7712':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-1.3pp／20日-2.0pp），不建議依此訊號進出場
+    fdr_p_value: 0.3319
+    fdr_significant: false
+    stable_across_periods: false
+  '3576':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-16.5pp／20日-21.0pp），不建議依此訊號進出場
+    fdr_p_value: 0.9988
+    fdr_significant: false
+    stable_across_periods: false
+  '2465':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-6.2pp／20日-11.7pp），不建議依此訊號進出場
+    fdr_p_value: 0.968
+    fdr_significant: false
+    stable_across_periods: false
+  '5351':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-18.0pp／20日-9.2pp），不建議依此訊號進出場
+    fdr_p_value: 0.989
+    fdr_significant: false
+    stable_across_periods: false
+  '6770':
+    grade: C
+    reason: 優勢不一致或接近0，目前資料看不出訊號比隨機進場更好
+    fdr_p_value: 0.1607
+    fdr_significant: false
+    stable_across_periods: false
+  '1609':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-2.1pp／20日-12.0pp），不建議依此訊號進出場
+    fdr_p_value: 0.9953
+    fdr_significant: false
+    stable_across_periods: false
+  '2408':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-4.4pp／20日-9.2pp），不建議依此訊號進出場
+    fdr_p_value: 0.9019
+    fdr_significant: false
+    stable_across_periods: false
+  '2637':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-10.6pp／20日-13.3pp），不建議依此訊號進出場
+    fdr_p_value: 1.0
+    fdr_significant: false
+    stable_across_periods: false
+  '2615':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-8.5pp／20日-17.9pp），不建議依此訊號進出場
+    fdr_p_value: 1.0
+    fdr_significant: false
+    stable_across_periods: false
+  '5468':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-0.3pp／20日-11.1pp），不建議依此訊號進出場
+    fdr_p_value: 0.9817
+    fdr_significant: false
+    stable_across_periods: false
+  '3006':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-3.5pp／20日-0.5pp），不建議依此訊號進出場
+    fdr_p_value: 0.8758
+    fdr_significant: false
+    stable_across_periods: false
+  '8476':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-2.8pp／20日-12.0pp），不建議依此訊號進出場
+    fdr_p_value: 0.998
+    fdr_significant: false
+    stable_across_periods: false
+  '2061':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-21.5pp／20日-11.8pp），不建議依此訊號進出場
+    fdr_p_value: 0.998
+    fdr_significant: false
+    stable_across_periods: false
+  '2542':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-3.6pp／20日-8.7pp），不建議依此訊號進出場
+    fdr_p_value: 0.9848
+    fdr_significant: false
+    stable_across_periods: false
+  '3285':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-11.2pp／20日-9.8pp），不建議依此訊號進出場
+    fdr_p_value: 0.9397
+    fdr_significant: false
+    stable_across_periods: false
+  '2491':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-12.2pp／20日-19.6pp），不建議依此訊號進出場
+    fdr_p_value: 0.9999
+    fdr_significant: false
+    stable_across_periods: false
+  '6757':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-2.4pp／20日-2.5pp），不建議依此訊號進出場
+    fdr_p_value: 0.1662
+    fdr_significant: false
+    stable_across_periods: false
+  '6922':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-4.0pp／20日-7.4pp），不建議依此訊號進出場
+    fdr_p_value: 0.8997
+    fdr_significant: false
+    stable_across_periods: false
+  '2451':
+    grade: B
+    reason: 方向上優於基準線但優勢較小或報酬接近交易成本門檻（10日+2.0pp／20日+5.7pp）
+    fdr_p_value: 0.0625
+    fdr_significant: false
+    stable_across_periods: false
+  '4716':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差+5.3pp／20日-4.3pp），不建議依此訊號進出場
+    fdr_p_value: 0.8827
+    fdr_significant: false
+    stable_across_periods: false
+  '6226':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差+0.4pp／20日+0.1pp），不建議依此訊號進出場
+    fdr_p_value: 0.5829
+    fdr_significant: false
+    stable_across_periods: false
+  '6576':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-7.0pp／20日+1.8pp），不建議依此訊號進出場
+    fdr_p_value: 0.2289
+    fdr_significant: false
+    stable_across_periods: false
+  '6259':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-6.6pp／20日-5.2pp），不建議依此訊號進出場
+    fdr_p_value: 0.8643
+    fdr_significant: false
+    stable_across_periods: false
+  '3652':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-1.1pp／20日+0.2pp），不建議依此訊號進出場
+    fdr_p_value: 0.4364
+    fdr_significant: false
+    stable_across_periods: false
+  '6432':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-7.8pp／20日-17.1pp），不建議依此訊號進出場
+    fdr_p_value: 1.0
+    fdr_significant: false
+    stable_across_periods: false
+  '3088':
+    grade: B
+    reason: 優勢數字看起來像 A 級（10日+11.6pp／20日+8.8pp），FDR 顯著，但分段檢驗後優勢集中在單一區段，跨時間不穩定（可能是運氣），上限降為
+      B——單看邊際數字會高估可信度
+    fdr_p_value: 0.0006
+    fdr_significant: true
+    stable_across_periods: false
+  '2478':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-8.1pp／20日-23.5pp），不建議依此訊號進出場
+    fdr_p_value: 1.0
+    fdr_significant: false
+    stable_across_periods: false
+  '6175':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差+5.0pp／20日-2.7pp），不建議依此訊號進出場
+    fdr_p_value: 0.9755
+    fdr_significant: false
+    stable_across_periods: false
+  '6672':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-14.3pp／20日-8.8pp），不建議依此訊號進出場
+    fdr_p_value: 0.9158
+    fdr_significant: false
+    stable_across_periods: false
+  '3481':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-1.2pp／20日-2.9pp），不建議依此訊號進出場
+    fdr_p_value: 0.8265
+    fdr_significant: false
+    stable_across_periods: false
+  '8438':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差+1.5pp／20日-6.2pp），不建議依此訊號進出場
+    fdr_p_value: 0.8178
+    fdr_significant: false
+    stable_across_periods: false
+  '2303':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-3.3pp／20日-2.2pp），不建議依此訊號進出場
+    fdr_p_value: 0.7708
+    fdr_significant: false
+    stable_across_periods: false

@@ -117,3 +117,14 @@ entry_exit:
   stop_loss_pct: -5             # 跌破主力成本 N% 停損
   take_profit_min_pct: 25       # 高於主力成本 N% 且分點轉賣才停利
   volume_surge_ratio: 1.0       # 成交量 / 20日均量 門檻（>=1.0 視為量能達標）
+
+# Institutional cost-line signal (法人成本線, free-tier data only — no
+# broker/分點 dependency). Untested hypothesis, being backtested in
+# src/backtest/cost_line_signal.py before being trusted for anything live.
+cost_line:
+  investor: trust                # which cost line drives the signal: foreign | trust
+  cost_trend_window_days: 10    # cost line must be higher than this many days ago (still accumulating)
+  entry_min_deviation_pct: 0    # price must be at or above cost...
+  entry_max_deviation_pct: 5    # ...but not more than this far above it (freshly built position)
+  take_profit_deviation_pct: 15 # deviation >= this = profit-taking-sensitive zone
+  stop_loss_deviation_pct: -10  # deviation <= this = institutions underwater

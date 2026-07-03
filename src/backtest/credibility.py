@@ -29,6 +29,7 @@ def grade(
     signal_20d: dict,
     baseline_20d: dict,
     fdr_significant: bool | None = None,
+    stable_across_periods: bool | None = None,
 ) -> dict:
     """Grades using the 10-day and 20-day holding periods (less noisy than
     3/5-day). `fdr_significant`: result of a Mann-Whitney test against this
@@ -36,6 +37,15 @@ def grade(
     watchlist (see run_significance_analysis.py). None means "not tested" —
     the grade is then capped at B and the reason says so explicitly, rather
     than silently treating an untested stock as equivalent to a disproven one.
+
+    `stable_across_periods`: whether the edge holds up when the history is
+    split into independent chronological sub-periods, instead of only
+    looking pooled. Added 2026-07-04 after 2491 passed FDR on the pooled
+    3-year composite-signal test but turned out to be almost entirely
+    driven by one recent ~1-year stretch (see 系統功能說明與測試結果.md 6.8)
+    — FDR significance alone doesn't rule out a result that's real only in
+    one lucky regime. Same None/False handling as fdr_significant: without
+    a passing stability check, the grade cannot reach A.
 
     Returns {"grade": "A"/"B"/"C"/"D"/"N/A", "reason": str}."""
     if signal_10d.get("sample_count", 0) < MIN_SAMPLE_COUNT or signal_20d.get("sample_count", 0) < MIN_SAMPLE_COUNT:
@@ -61,15 +71,23 @@ def grade(
         }
 
     if edge_qualifies_for_a:
-        if fdr_significant is True:
+        if fdr_significant is True and stable_across_periods is True:
             return {
                 "grade": "A",
                 "reason": (
                     f"10日與20日勝率、報酬都優於基準線（10日{win_edge_10:+.1f}pp／20日{win_edge_20:+.1f}pp），"
-                    f"報酬扣掉約{ROUND_TRIP_COST_PCT}%交易成本估算後仍有空間，且經 FDR 校正後統計顯著"
+                    f"報酬扣掉約{ROUND_TRIP_COST_PCT}%交易成本估算後仍有空間，經 FDR 校正後統計顯著，"
+                    f"且切段檢驗確認優勢不是只集中在單一區段"
                 ),
             }
-        caveat = "尚未做過 FDR 顯著性檢定" if fdr_significant is None else "但經 FDR 校正後不具統計顯著性（可能是運氣）"
+        if fdr_significant is None:
+            caveat = "尚未做過 FDR 顯著性檢定"
+        elif fdr_significant is False:
+            caveat = "但經 FDR 校正後不具統計顯著性（可能是運氣）"
+        elif stable_across_periods is None:
+            caveat = "FDR 顯著，但尚未做分段穩健性檢查"
+        else:
+            caveat = "FDR 顯著，但分段檢驗後優勢集中在單一區段，跨時間不穩定（可能是運氣）"
         return {
             "grade": "B",
             "reason": (
