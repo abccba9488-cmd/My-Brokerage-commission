@@ -25,7 +25,7 @@ def _suspension_gap_indices(df: pd.DataFrame) -> set[int]:
     return set(df.index[gap_days > _SUSPENSION_GAP_DAYS])
 
 
-def _trades_for_holding(price_df: pd.DataFrame, signal_dates: set[str], holding: int) -> list[dict]:
+def trades_for_holding(price_df: pd.DataFrame, signal_dates: set[str], holding: int) -> list[dict]:
     df = price_df.sort_values("date").reset_index(drop=True)
     date_to_idx = {d: i for i, d in enumerate(df["date"])}
     gap_indices = _suspension_gap_indices(df)
@@ -69,7 +69,7 @@ def run(price_df: pd.DataFrame, signal_dates: set[str], holding_days_list: list[
     """price_df: columns date, close, sorted ascending. signal_dates: set of
     'date' strings on which the signal fired. Returns per-holding-period stats.
     """
-    return {h: _summarize(_trades_for_holding(price_df, signal_dates, h)) for h in holding_days_list}
+    return {h: _summarize(trades_for_holding(price_df, signal_dates, h)) for h in holding_days_list}
 
 
 def run_multi(stock_signal_pairs: list[tuple[pd.DataFrame, set[str]]], holding_days_list: list[int]) -> dict:
@@ -79,7 +79,7 @@ def run_multi(stock_signal_pairs: list[tuple[pd.DataFrame, set[str]]], holding_d
     for holding in holding_days_list:
         pooled_trades: list[dict] = []
         for price_df, signals in stock_signal_pairs:
-            pooled_trades.extend(_trades_for_holding(price_df, signals, holding))
+            pooled_trades.extend(trades_for_holding(price_df, signals, holding))
         results[holding] = _summarize(pooled_trades)
     return results
 

@@ -21,7 +21,7 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-from src.backtest import backtest, broker_signal, credibility
+from src.backtest import backtest, broker_signal, credibility, significance
 from src.indicators.broker_streak import filter_by_volume_share
 from src.ingest import fetch_broker, fetch_price
 from src.ingest.finmind_client import has_sponsor_token
@@ -227,6 +227,7 @@ def main() -> None:
     stock_baseline_pairs = []
     per_stock_results = {}
     per_stock_baseline = {}
+    per_stock_pvalue: dict[str, float] = {}
 
     for stock in config["stocks"]:
         sid = stock["code"]
@@ -251,6 +252,16 @@ def main() -> None:
             stock_baseline_pairs.append((price_df, all_dates))
             per_stock_results[sid] = backtest.run(price_df, signals, holding_days_list)
             per_stock_baseline[sid] = backtest.run(price_df, all_dates, holding_days_list)
+
+            # Mann-Whitney at the 20-day holding period (least noisy) — feeds
+            # the cross-stock FDR correction below, so an "A" grade requires
+            # more than just a good-looking edge on one stock in isolation.
+            sig_trades_20d = backtest.trades_for_holding(price_df, signals, 20)
+            base_trades_20d = backtest.trades_for_holding(price_df, all_dates, 20)
+            mw = significance.mann_whitney_test(
+                [t["return_pct"] for t in sig_trades_20d], [t["return_pct"] for t in base_trades_20d]
+            )
+            per_stock_pvalue[sid] = mw["p_value"]
         except Exception as exc:
             # A per-stock crash (fetch failure, or an unexpected data shape in
             # the signal/backtest math further down) used to take down the
@@ -279,13 +290,23 @@ def main() -> None:
 
     run_date = end_date.strftime("%Y-%m-%d")
 
+    # FDR=10%: with only ~38 simultaneous tests and small per-stock samples,
+    # the conventional 5% would likely flag zero stocks even if a couple were
+    # genuinely real; 10% is a defensible middle ground for an exploratory
+    # screen, not a publication-grade claim. See significance.py.
+    bh_results = significance.benjamini_hochberg(per_stock_pvalue, fdr=0.10) if per_stock_pvalue else {}
+
     grades = {}
     for sid, results in per_stock_results.items():
         baseline = per_stock_baseline[sid]
+        fdr_significant = bh_results.get(sid, {}).get("significant")
         if 10 in results and 20 in results:
-            grades[sid] = credibility.grade(results[10], baseline[10], results[20], baseline[20])
+            grades[sid] = credibility.grade(results[10], baseline[10], results[20], baseline[20], fdr_significant)
         else:
             grades[sid] = {"grade": "N/A", "reason": "缺少10日或20日持有期資料"}
+        if sid in per_stock_pvalue:
+            grades[sid]["fdr_p_value"] = round(per_stock_pvalue[sid], 4)
+            grades[sid]["fdr_significant"] = fdr_significant
 
     credibility_out = {
         "generated_from_backtest_date": run_date,
