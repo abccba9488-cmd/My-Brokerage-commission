@@ -20,7 +20,7 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-from src.backtest import backtest, broker_signal
+from src.backtest import backtest, broker_signal, credibility
 from src.indicators.broker_streak import filter_by_volume_share
 from src.ingest import fetch_broker, fetch_price
 from src.ingest.finmind_client import has_sponsor_token
@@ -35,6 +35,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 CONFIG_PATH = Path(__file__).parent / "config" / "stocks.yaml"
+CREDIBILITY_PATH = Path(__file__).parent / "config" / "signal_credibility.yaml"
 REPORTS_DIR = Path(__file__).parent / "reports"
 
 
@@ -104,7 +105,15 @@ def _edge_rows(signal: dict, baseline: dict) -> list[str]:
     return rows
 
 
-def render_report(per_stock: dict, pooled: dict, baseline_per_stock: dict, baseline_pooled: dict, run_date: str, days: int) -> str:
+def render_report(
+    per_stock: dict,
+    pooled: dict,
+    baseline_per_stock: dict,
+    baseline_pooled: dict,
+    grades: dict,
+    run_date: str,
+    days: int,
+) -> str:
     lines = [
         f"# 分點連續買超訊號回測報告 — {run_date}",
         "",
@@ -130,12 +139,22 @@ def render_report(per_stock: dict, pooled: dict, baseline_per_stock: dict, basel
         "| 持有天數 | 勝率差 | 平均報酬差 |",
         "|---|---|---|",
         *_edge_rows(pooled, baseline_pooled),
+        "",
+        "## 訊號可信度分級（依 10日／20日持有期的優勢與交易成本估算評定）",
+        "",
+        "| 股票 | 等級 | 說明 |",
+        "|---|---|---|",
     ]
+    for sid, g in grades.items():
+        lines.append(f"| {sid} | **{g['grade']}** | {g['reason']} |")
 
     lines += ["", "## 個股明細", ""]
     for sid, results in per_stock.items():
         baseline = baseline_per_stock.get(sid, {})
-        lines.append(f"### {sid}")
+        g = grades.get(sid, {"grade": "N/A", "reason": ""})
+        lines.append(f"### {sid} — 可信度：{g['grade']}")
+        lines.append("")
+        lines.append(f"{g['reason']}")
         lines.append("")
         lines.append("訊號進場：")
         lines.append("| 持有天數 | 樣本數 | 勝率 | 平均報酬 | 中位數報酬 | 最大回撤 |")
@@ -211,7 +230,26 @@ def main() -> None:
     baseline_pooled = backtest.run_multi(stock_baseline_pairs, holding_days_list)
 
     run_date = end_date.strftime("%Y-%m-%d")
-    report = render_report(per_stock_results, pooled, per_stock_baseline, baseline_pooled, run_date, args.days)
+
+    grades = {}
+    for sid, results in per_stock_results.items():
+        baseline = per_stock_baseline[sid]
+        if 10 in results and 20 in results:
+            grades[sid] = credibility.grade(results[10], baseline[10], results[20], baseline[20])
+        else:
+            grades[sid] = {"grade": "N/A", "reason": "缺少10日或20日持有期資料"}
+
+    credibility_out = {
+        "generated_from_backtest_date": run_date,
+        "backtest_window_days": args.days,
+        "stocks": {sid: g for sid, g in grades.items()},
+    }
+    CREDIBILITY_PATH.write_text(
+        yaml.safe_dump(credibility_out, allow_unicode=True, sort_keys=False), encoding="utf-8"
+    )
+    logger.info("Signal credibility grades written to %s", CREDIBILITY_PATH)
+
+    report = render_report(per_stock_results, pooled, per_stock_baseline, baseline_pooled, grades, run_date, args.days)
     out_path = REPORTS_DIR / f"backtest_{run_date}.md"
     out_path.write_text(report, encoding="utf-8")
     print(report)

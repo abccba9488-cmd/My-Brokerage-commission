@@ -40,13 +40,15 @@ def _stock_section(r: dict) -> str:
     action = _final_action(r)
     entry = r["entry_signal"]
     exit_ = r["exit_signal"]
+    grade = r["credibility"]["grade"]
 
     lines = [
         f"## {r['stock_id']} {r['name']}",
         "",
         f"**收盤價**：{r['close']} 　**多空燈號**：{r['light']['light']}（{r['light']['label']}）"
-        f"　**訊號**：{ACTION_LABELS[action]}",
+        f"　**訊號**：{ACTION_LABELS[action]}（可信度：{grade}）",
         "",
+        f"- 訊號可信度：**{grade}** — {r['credibility']['reason']}",
         f"- 籌碼健康度：{r['chip_health']['score']} / 100（{r['chip_health']['label']}）",
         f"- 主力吸籌指數：{r['accumulation_score']['score']} / 100" + broker_note,
         f"- {cost_line}",
@@ -74,7 +76,7 @@ def _stock_section(r: dict) -> str:
 def render_markdown(results: list[dict], run_date: str) -> str:
     overview_rows = "\n".join(
         f"| {r['stock_id']} {r['name']} | {r['close']} | {r['light']['light']} | "
-        f"{r['chip_health']['score']} | {ACTION_LABELS[_final_action(r)]} | "
+        f"{r['chip_health']['score']} | {ACTION_LABELS[_final_action(r)]} | {r['credibility']['grade']} | "
         f"{'⚠️' if r['sell_alert']['alert'] else '-'} |"
         for r in results
     )
@@ -82,11 +84,14 @@ def render_markdown(results: list[dict], run_date: str) -> str:
     header = f"""# 籌碼流向日報 — {run_date}
 
 > {DISCLAIMER}
+>
+> 「訊號可信度」是根據 `run_backtest.py` 的歷史回測結果評定（A~D，N/A 代表尚未回測），不是憑感覺打分數。
+> 沒有 A/B 級佐證的訊號請勿直接當作進出場依據。
 
 ## 總覽
 
-| 股票 | 收盤價 | 燈號 | 籌碼健康度 | 訊號 | 出貨警報 |
-|---|---|---|---|---|---|
+| 股票 | 收盤價 | 燈號 | 籌碼健康度 | 訊號 | 可信度 | 出貨警報 |
+|---|---|---|---|---|---|---|
 {overview_rows}
 
 ---
@@ -99,7 +104,7 @@ def render_markdown(results: list[dict], run_date: str) -> str:
 def render_csv(results: list[dict], path: Path) -> None:
     fieldnames = [
         "stock_id", "name", "close", "light_label", "chip_health_score",
-        "accumulation_score", "action", "entry_conditions_met", "entry_conditions_total",
+        "accumulation_score", "action", "credibility_grade", "entry_conditions_met", "entry_conditions_total",
         "margin_maintenance_ratio_pct", "margin_risk_level",
         "vp_pattern", "false_breakout_risk", "foreign_net", "trust_net",
         "broker_available", "broker_cost", "broker_pnl_pct", "sell_alert",
@@ -116,6 +121,7 @@ def render_csv(results: list[dict], path: Path) -> None:
                 "chip_health_score": r["chip_health"]["score"],
                 "accumulation_score": r["accumulation_score"]["score"],
                 "action": _final_action(r),
+                "credibility_grade": r["credibility"]["grade"],
                 "entry_conditions_met": len(r["entry_signal"]["conditions_met"]),
                 "entry_conditions_total": r["entry_signal"]["conditions_total"],
                 "margin_maintenance_ratio_pct": r["margin_risk"].get("maintenance_ratio_pct"),

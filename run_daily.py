@@ -42,13 +42,23 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 CONFIG_PATH = Path(__file__).parent / "config" / "stocks.yaml"
+CREDIBILITY_PATH = Path(__file__).parent / "config" / "signal_credibility.yaml"
+
+NO_BACKTEST_YET = {"grade": "N/A", "reason": "尚未執行過回測（見 run_backtest.py），訊號可信度未知"}
 
 
 def load_config() -> dict:
     return yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
 
 
-def analyze_stock(stock: dict, start_date: str, end_date: str, config: dict, conn) -> dict | None:
+def load_credibility() -> dict:
+    if not CREDIBILITY_PATH.exists():
+        return {}
+    data = yaml.safe_load(CREDIBILITY_PATH.read_text(encoding="utf-8"))
+    return data.get("stocks", {})
+
+
+def analyze_stock(stock: dict, start_date: str, end_date: str, config: dict, conn, credibility: dict) -> dict | None:
     sid = stock["code"]
 
     price_rows = fetch_price.fetch(sid, start_date, end_date)
@@ -219,11 +229,13 @@ def analyze_stock(stock: dict, start_date: str, end_date: str, config: dict, con
         "sell_alert": alert,
         "entry_signal": entry_signal,
         "exit_signal": exit_signal,
+        "credibility": credibility.get(sid, NO_BACKTEST_YET),
     }
 
 
 def main() -> None:
     config = load_config()
+    credibility = load_credibility()
     db.init_db()
     conn = db.get_connection()
 
@@ -234,7 +246,7 @@ def main() -> None:
     results = []
     for stock in config["stocks"]:
         try:
-            r = analyze_stock(stock, start_str, end_str, config, conn)
+            r = analyze_stock(stock, start_str, end_str, config, conn, credibility)
             if r:
                 results.append(r)
         except Exception:
