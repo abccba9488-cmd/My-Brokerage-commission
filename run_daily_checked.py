@@ -27,7 +27,10 @@ PYTHON = ROOT / ".venv" / "Scripts" / "python.exe"
 RUN_DAILY = ROOT / "run_daily.py"
 
 MAX_ATTEMPTS = 3
-RETRY_DELAY_SECONDS = 300  # 5 minutes — gives a transient FinMind outage room to clear
+RETRY_DELAY_SECONDS = 180  # 3 minutes — gives a transient FinMind outage room to clear
+ATTEMPT_TIMEOUT_SECONDS = 480  # 8 minutes — bounds a hung/unresponsive run_daily.py so
+# a stuck first attempt can't burn the whole scheduled-task time budget and skip retries.
+# 3 * 480s + 2 * 180s = 27.5min, comfortably under the task's 45min execution limit.
 
 logging.basicConfig(
     level=logging.INFO,
@@ -62,7 +65,12 @@ def main() -> None:
 
     for attempt in range(1, MAX_ATTEMPTS + 1):
         logger.info("Attempt %d/%d: running run_daily.py", attempt, MAX_ATTEMPTS)
-        subprocess.run([str(PYTHON), str(RUN_DAILY)], cwd=str(ROOT), check=False)
+        try:
+            subprocess.run(
+                [str(PYTHON), str(RUN_DAILY)], cwd=str(ROOT), check=False, timeout=ATTEMPT_TIMEOUT_SECONDS
+            )
+        except subprocess.TimeoutExpired:
+            logger.warning("Attempt %d timed out after %ds — treating as failed", attempt, ATTEMPT_TIMEOUT_SECONDS)
 
         complete, missing = report_is_complete(run_date)
         if complete:
