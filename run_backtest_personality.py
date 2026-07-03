@@ -86,8 +86,17 @@ def main() -> None:
             if train_price.empty or test_price.empty:
                 continue
 
-            train_broker_filtered = filter_by_volume_share(train_broker, train_price, broker_cfg["volume_share_min_pct"])
-            personalities = classify_brokers(train_broker_filtered, train_price, broker_cfg["volume_share_min_pct"])
+            # classify_brokers() must see the RAW (unfiltered) broker_df: it
+            # needs each qualifying big-buy day's *next-day* net position to
+            # detect a flip, and a sell-off day rarely clears the buy-share
+            # threshold itself — pre-filtering with filter_by_volume_share()
+            # here silently deleted most of those next-day rows, so the T+1
+            # lookup almost always missed and no broker ever reached the
+            # minimum observation count (found via direct real-data testing:
+            # 0 flippers on every stock even with 1.5yr of training data,
+            # despite classify_brokers() correctly finding several when
+            # called on the same unfiltered data directly).
+            personalities = classify_brokers(train_broker, train_price, broker_cfg["volume_share_min_pct"])
             flipper_ids = set(personalities.loc[personalities["label"] == "隔日沖客", "broker_id"]) if not personalities.empty else set()
             n_flippers_total += len(flipper_ids)
 
