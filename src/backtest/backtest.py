@@ -10,46 +10,59 @@ from __future__ import annotations
 import pandas as pd
 
 
+def _trades_for_holding(price_df: pd.DataFrame, signal_dates: set[str], holding: int) -> list[dict]:
+    df = price_df.sort_values("date").reset_index(drop=True)
+    date_to_idx = {d: i for i, d in enumerate(df["date"])}
+
+    trades = []
+    for sig_date in sorted(signal_dates):
+        if sig_date not in date_to_idx:
+            continue
+        entry_idx = date_to_idx[sig_date]
+        exit_idx = entry_idx + holding
+        if exit_idx >= len(df):
+            continue  # not enough forward data yet
+
+        entry_close = df["close"].iloc[entry_idx]
+        exit_close = df["close"].iloc[exit_idx]
+        path = df["close"].iloc[entry_idx: exit_idx + 1]
+
+        ret_pct = (exit_close / entry_close - 1) * 100
+        max_drawdown_pct = ((path.cummax() - path) / path.cummax() * 100).max()
+
+        trades.append({"signal_date": sig_date, "return_pct": ret_pct, "max_drawdown_pct": max_drawdown_pct})
+    return trades
+
+
+def _summarize(trades: list[dict]) -> dict:
+    if not trades:
+        return {"sample_count": 0}
+    trades_df = pd.DataFrame(trades)
+    return {
+        "sample_count": len(trades_df),
+        "win_rate_pct": round((trades_df["return_pct"] > 0).mean() * 100, 1),
+        "avg_return_pct": round(trades_df["return_pct"].mean(), 2),
+        "median_return_pct": round(trades_df["return_pct"].median(), 2),
+        "max_drawdown_pct": round(trades_df["max_drawdown_pct"].max(), 2),
+    }
+
+
 def run(price_df: pd.DataFrame, signal_dates: set[str], holding_days_list: list[int]) -> dict:
     """price_df: columns date, close, sorted ascending. signal_dates: set of
     'date' strings on which the signal fired. Returns per-holding-period stats.
     """
-    df = price_df.sort_values("date").reset_index(drop=True)
-    date_to_idx = {d: i for i, d in enumerate(df["date"])}
+    return {h: _summarize(_trades_for_holding(price_df, signal_dates, h)) for h in holding_days_list}
 
+
+def run_multi(stock_signal_pairs: list[tuple[pd.DataFrame, set[str]]], holding_days_list: list[int]) -> dict:
+    """Same as run(), but pools trades across multiple stocks for a larger
+    sample size. stock_signal_pairs: list of (price_df, signal_dates)."""
     results = {}
     for holding in holding_days_list:
-        trades = []
-        for sig_date in sorted(signal_dates):
-            if sig_date not in date_to_idx:
-                continue
-            entry_idx = date_to_idx[sig_date]
-            exit_idx = entry_idx + holding
-            if exit_idx >= len(df):
-                continue  # not enough forward data yet
-
-            entry_close = df["close"].iloc[entry_idx]
-            exit_close = df["close"].iloc[exit_idx]
-            path = df["close"].iloc[entry_idx: exit_idx + 1]
-
-            ret_pct = (exit_close / entry_close - 1) * 100
-            max_drawdown_pct = ((path.cummax() - path) / path.cummax() * 100).max()
-
-            trades.append({"signal_date": sig_date, "return_pct": ret_pct, "max_drawdown_pct": max_drawdown_pct})
-
-        if not trades:
-            results[holding] = {"sample_count": 0}
-            continue
-
-        trades_df = pd.DataFrame(trades)
-        results[holding] = {
-            "sample_count": len(trades_df),
-            "win_rate_pct": round((trades_df["return_pct"] > 0).mean() * 100, 1),
-            "avg_return_pct": round(trades_df["return_pct"].mean(), 2),
-            "median_return_pct": round(trades_df["return_pct"].median(), 2),
-            "max_drawdown_pct": round(trades_df["max_drawdown_pct"].max(), 2),
-        }
-
+        pooled_trades: list[dict] = []
+        for price_df, signals in stock_signal_pairs:
+            pooled_trades.extend(_trades_for_holding(price_df, signals, holding))
+        results[holding] = _summarize(pooled_trades)
     return results
 
 

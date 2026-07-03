@@ -1,0 +1,174 @@
+"""Backtest the broker buy-streak signal over real historical data.
+
+Usage:
+    python run_backtest.py [--days N]
+
+Fetches ~N calendar days of price + broker branch data per stock in
+config/stocks.yaml (incrementally cached, like run_daily.py), rolls the
+buy-streak signal across every historical day, and reports forward-return
+win rate / avg return / max drawdown per holding period — both pooled
+across the whole watchlist and broken out per stock.
+"""
+from __future__ import annotations
+
+import argparse
+import logging
+import sys
+from datetime import datetime, timedelta
+from pathlib import Path
+
+import pandas as pd
+import yaml
+
+from src.backtest import backtest, broker_signal
+from src.indicators.broker_streak import filter_by_volume_share
+from src.ingest import fetch_broker, fetch_price
+from src.ingest.finmind_client import has_sponsor_token
+from src.storage import db
+
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except AttributeError:
+    pass
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
+
+CONFIG_PATH = Path(__file__).parent / "config" / "stocks.yaml"
+REPORTS_DIR = Path(__file__).parent / "reports"
+
+
+def load_config() -> dict:
+    return yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
+
+
+def fetch_and_cache_history(sid: str, start_date: str, end_date: str, conn) -> tuple[pd.DataFrame, pd.DataFrame]:
+    price_rows = fetch_price.fetch(sid, start_date, end_date)
+    if not price_rows:
+        return pd.DataFrame(), pd.DataFrame()
+    db.upsert_rows(conn, "stock_price", price_rows)
+    price_df = pd.DataFrame(price_rows).sort_values("date").reset_index(drop=True)
+
+    already_have = db.get_existing_dates(conn, "broker_trade", sid)
+    missing_dates = [d for d in price_df["date"] if d not in already_have]
+    new_rows: list[dict] = []
+    for i, trade_date in enumerate(missing_dates):
+        new_rows.extend(fetch_broker.fetch(sid, trade_date))
+        if (i + 1) % 20 == 0:
+            db.upsert_rows(conn, "broker_trade", new_rows)
+            new_rows = []
+            logger.info("%s: fetched %d/%d broker dates", sid, i + 1, len(missing_dates))
+    if new_rows:
+        db.upsert_rows(conn, "broker_trade", new_rows)
+    logger.info("%s: %d new broker date(s) fetched, %d already cached", sid, len(missing_dates), len(already_have))
+
+    placeholders = ",".join("?" for _ in price_df["date"])
+    cur = conn.execute(
+        f"SELECT stock_id, date, broker_id, broker_name, buy_shares, sell_shares, price "
+        f"FROM broker_trade WHERE stock_id = ? AND date IN ({placeholders})",
+        [sid, *price_df["date"]],
+    )
+    broker_df = pd.DataFrame(
+        cur.fetchall(),
+        columns=["stock_id", "date", "broker_id", "broker_name", "buy_shares", "sell_shares", "price"],
+    )
+    return price_df, broker_df
+
+
+def render_report(per_stock: dict, pooled: dict, run_date: str, days: int) -> str:
+    lines = [
+        f"# 分點連續買超訊號回測報告 — {run_date}",
+        "",
+        f"訊號定義：任一券商分點連續買超 >= 門檻天數（見 config/stocks.yaml `broker.streak_min_days`），"
+        f"回測範圍約 {days} 個日曆天。",
+        "",
+        "## 全部股票合併結果（樣本數較大，較能代表整體）",
+        "",
+        "| 持有天數 | 樣本數 | 勝率 | 平均報酬 | 中位數報酬 | 最大回撤 |",
+        "|---|---|---|---|---|---|",
+    ]
+    for h, r in pooled.items():
+        if r.get("sample_count", 0) == 0:
+            lines.append(f"| {h} | 0 | - | - | - | - |")
+        else:
+            lines.append(
+                f"| {h} | {r['sample_count']} | {r['win_rate_pct']}% | "
+                f"{r['avg_return_pct']:+.2f}% | {r['median_return_pct']:+.2f}% | {r['max_drawdown_pct']:.2f}% |"
+            )
+
+    lines += ["", "## 個股明細", ""]
+    for sid, results in per_stock.items():
+        lines.append(f"### {sid}")
+        lines.append("")
+        lines.append("| 持有天數 | 樣本數 | 勝率 | 平均報酬 | 中位數報酬 | 最大回撤 |")
+        lines.append("|---|---|---|---|---|---|")
+        for h, r in results.items():
+            if r.get("sample_count", 0) == 0:
+                lines.append(f"| {h} | 0 | - | - | - | - |")
+            else:
+                lines.append(
+                    f"| {h} | {r['sample_count']} | {r['win_rate_pct']}% | "
+                    f"{r['avg_return_pct']:+.2f}% | {r['median_return_pct']:+.2f}% | {r['max_drawdown_pct']:.2f}% |"
+                )
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--days", type=int, default=365, help="calendar days of history to backtest over")
+    args = parser.parse_args()
+
+    if not has_sponsor_token():
+        logger.error("FINMIND_TOKEN not set — broker-branch backtest requires FinMind Sponsor.")
+        sys.exit(1)
+
+    config = load_config()
+    db.init_db()
+    conn = db.get_connection()
+
+    end_date = datetime.today()
+    start_date = end_date - timedelta(days=args.days)
+    end_str, start_str = end_date.strftime("%Y-%m-%d"), start_date.strftime("%Y-%m-%d")
+
+    broker_cfg = config["broker"]
+    lookback = config["lookback"]["long"]
+    holding_days_list = config["backtest"]["holding_days"]
+
+    stock_signal_pairs = []
+    per_stock_results = {}
+
+    for stock in config["stocks"]:
+        sid = stock["code"]
+        price_df, broker_df = fetch_and_cache_history(sid, start_str, end_str, conn)
+        if price_df.empty:
+            logger.warning("No price data for %s, skipping", sid)
+            continue
+
+        broker_df = filter_by_volume_share(broker_df, price_df, broker_cfg["volume_share_min_pct"])
+        signals = broker_signal.signal_dates(
+            broker_df,
+            streak_min_days=broker_cfg["streak_min_days"],
+            allow_gap_days=broker_cfg["streak_allow_gap_days"],
+            lookback_days=lookback,
+        )
+        logger.info("%s: %d buy-streak signal dates found", sid, len(signals))
+
+        stock_signal_pairs.append((price_df, signals))
+        per_stock_results[sid] = backtest.run(price_df, signals, holding_days_list)
+
+    conn.close()
+
+    pooled = backtest.run_multi(stock_signal_pairs, holding_days_list)
+
+    run_date = end_date.strftime("%Y-%m-%d")
+    report = render_report(per_stock_results, pooled, run_date, args.days)
+    out_path = REPORTS_DIR / f"backtest_{run_date}.md"
+    out_path.write_text(report, encoding="utf-8")
+    print(report)
+    print(f"\nSaved: {out_path}")
+
+
+if __name__ == "__main__":
+    main()

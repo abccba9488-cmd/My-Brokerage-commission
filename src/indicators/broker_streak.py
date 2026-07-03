@@ -10,6 +10,24 @@ from __future__ import annotations
 import pandas as pd
 
 
+def filter_by_volume_share(broker_df: pd.DataFrame, price_df: pd.DataFrame, min_share_pct: float) -> pd.DataFrame:
+    """Drop brokers whose daily buy volume is a trivial fraction of that
+    day's total traded volume (DeepSeek's 陷阱二: low-share activity is
+    noise, not a signal of a real accumulating buyer). Without this,
+    literally any broker with a 3-day run — even one doing 0.01% of volume
+    — counts toward a buy-streak, and with hundreds of active brokers per
+    stock per day, that made the streak signal fire on ~95% of trading days
+    in backtesting: useless because it barely discriminates anything."""
+    if broker_df.empty:
+        return broker_df
+    daily_buy = broker_df.groupby(["broker_id", "date"], as_index=False)["buy_shares"].sum()
+    volume_by_date = price_df.set_index("date")["volume"]
+    daily_buy["day_volume"] = daily_buy["date"].map(volume_by_date)
+    daily_buy["share_pct"] = daily_buy["buy_shares"] / daily_buy["day_volume"] * 100
+    keep = daily_buy.loc[daily_buy["share_pct"] >= min_share_pct, ["broker_id", "date"]]
+    return broker_df.merge(keep, on=["broker_id", "date"], how="inner")
+
+
 def _daily_net(broker_df: pd.DataFrame) -> pd.DataFrame:
     df = broker_df.groupby(["broker_id", "broker_name", "date"], as_index=False).agg(
         buy_shares=("buy_shares", "sum"),

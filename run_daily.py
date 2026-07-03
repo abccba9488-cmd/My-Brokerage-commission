@@ -115,6 +115,9 @@ def analyze_stock(stock: dict, start_date: str, end_date: str, config: dict, con
     # trading days used everywhere else.
     recent_dates = set(price_df["date"].tail(lookback))
     broker_df = broker_df[broker_df["date"].isin(recent_dates)]
+    # Drop brokers whose daily buy volume is noise-level (see broker_streak.py) —
+    # without this, a broker doing 0.01% of volume can still count toward a streak.
+    broker_df = broker_streak.filter_by_volume_share(broker_df, price_df, broker_cfg["volume_share_min_pct"])
 
     mr = margin_risk.latest(price_df, margin_df, lookback, config)
     vp = volume_price.latest(price_df, lookback)
