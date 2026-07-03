@@ -88,6 +88,15 @@ def upsert_rows(conn: sqlite3.Connection, table: str, rows: list[dict]) -> None:
     conn.commit()
 
 
+def get_existing_dates(conn: sqlite3.Connection, table: str, stock_id: str) -> set[str]:
+    """Dates already stored for this stock in `table`. A finalized trading
+    day's data doesn't change, so callers can use this to skip re-fetching
+    days that are already in the database (see broker_trade, which is
+    expensive to re-pull: one API call and thousands of rows per day)."""
+    cur = conn.execute(f"SELECT DISTINCT date FROM {table} WHERE stock_id = ?", (stock_id,))
+    return {row[0] for row in cur.fetchall()}
+
+
 if __name__ == "__main__":
     init_db()
     print(f"Database initialized at {DB_PATH}")

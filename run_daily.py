@@ -70,16 +70,39 @@ def analyze_stock(stock: dict, start_date: str, end_date: str, config: dict, con
     lending_df = pd.DataFrame(lending_rows)
 
     broker_available = has_sponsor_token()
-    broker_rows: list[dict] = []
     if broker_available:
-        for trade_date in price_df["date"]:
-            broker_rows.extend(fetch_broker.fetch(sid, trade_date))
-        db.upsert_rows(conn, "broker_trade", broker_rows)
+        # A finalized trading day's broker data never changes, so only fetch
+        # dates not already in the DB — re-pulling the whole window every run
+        # was costing ~40 API calls and multiplying the DB size per stock per day.
+        already_have = db.get_existing_dates(conn, "broker_trade", sid)
+        missing_dates = [d for d in price_df["date"] if d not in already_have]
+        new_rows: list[dict] = []
+        for trade_date in missing_dates:
+            new_rows.extend(fetch_broker.fetch(sid, trade_date))
+        if new_rows:
+            db.upsert_rows(conn, "broker_trade", new_rows)
+        logger.info(
+            "%s: fetched %d new broker date(s), %d already cached",
+            sid, len(missing_dates), len(price_df["date"]) - len(missing_dates),
+        )
     else:
         logger.info("Skipping broker branch data for %s (no FinMind Sponsor token)", sid)
-    broker_df = pd.DataFrame(broker_rows) if broker_rows else pd.DataFrame(
-        columns=["stock_id", "date", "broker_id", "broker_name", "buy_shares", "sell_shares", "price"]
-    )
+
+    if broker_available:
+        placeholders = ",".join("?" for _ in price_df["date"])
+        cur = conn.execute(
+            f"SELECT stock_id, date, broker_id, broker_name, buy_shares, sell_shares, price "
+            f"FROM broker_trade WHERE stock_id = ? AND date IN ({placeholders})",
+            [sid, *price_df["date"]],
+        )
+        broker_df = pd.DataFrame(
+            cur.fetchall(),
+            columns=["stock_id", "date", "broker_id", "broker_name", "buy_shares", "sell_shares", "price"],
+        )
+    else:
+        broker_df = pd.DataFrame(
+            columns=["stock_id", "date", "broker_id", "broker_name", "buy_shares", "sell_shares", "price"]
+        )
 
     lookback = config["lookback"]["long"]
     broker_cfg = config["broker"]
