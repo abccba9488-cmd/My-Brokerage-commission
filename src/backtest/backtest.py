@@ -9,10 +9,26 @@ from __future__ import annotations
 
 import pandas as pd
 
+# A calendar-day gap this large between two consecutive trading rows means the
+# stock was halted (資產重整/減資/停牌), not just a weekend or normal holiday
+# (Taiwan's longest routine holiday, Lunar New Year, runs ~9-10 days). Trades
+# spanning a halt aren't tradeable and their "return" is a reference-price
+# reset, not a real gain/loss — e.g. 1435 (中福) jumped 12.85 -> 5.39 -> 14.10
+# across two halts in 2026, which inflated pooled max-drawdown to 60-70%
+# before this filter existed.
+_SUSPENSION_GAP_DAYS = 15
+
+
+def _suspension_gap_indices(df: pd.DataFrame) -> set[int]:
+    dates = pd.to_datetime(df["date"])
+    gap_days = dates.diff().dt.days
+    return set(df.index[gap_days > _SUSPENSION_GAP_DAYS])
+
 
 def _trades_for_holding(price_df: pd.DataFrame, signal_dates: set[str], holding: int) -> list[dict]:
     df = price_df.sort_values("date").reset_index(drop=True)
     date_to_idx = {d: i for i, d in enumerate(df["date"])}
+    gap_indices = _suspension_gap_indices(df)
 
     trades = []
     for sig_date in sorted(signal_dates):
@@ -22,6 +38,8 @@ def _trades_for_holding(price_df: pd.DataFrame, signal_dates: set[str], holding:
         exit_idx = entry_idx + holding
         if exit_idx >= len(df):
             continue  # not enough forward data yet
+        if any(entry_idx < g <= exit_idx for g in gap_indices):
+            continue  # holding period spans a trading halt — not a real tradeable return
 
         entry_close = df["close"].iloc[entry_idx]
         exit_close = df["close"].iloc[exit_idx]
