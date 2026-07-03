@@ -1,0 +1,232 @@
+generated_from_backtest_date: '2026-07-04'
+backtest_window_days: 1095
+indicator: bollinger
+stocks:
+  '7794':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 1.0
+    fdr_significant: false
+    stable_across_periods: null
+  '1618':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.1763
+    fdr_significant: false
+    stable_across_periods: false
+  '2425':
+    grade: B
+    reason: 優勢數字看起來像 A 級（10日+10.4pp／20日+5.9pp），但經 FDR 校正後不具統計顯著性（可能是運氣），上限降為 B——單看邊際數字會高估可信度
+    fdr_p_value: 0.189
+    fdr_significant: false
+    stable_across_periods: true
+  '3066':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差+1.7pp／20日+1.5pp），不建議依此訊號進出場
+    fdr_p_value: 0.3722
+    fdr_significant: false
+    stable_across_periods: false
+  '3576':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-7.6pp／20日+3.0pp），不建議依此訊號進出場
+    fdr_p_value: 0.2196
+    fdr_significant: false
+    stable_across_periods: false
+  '5351':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差+3.4pp／20日-1.5pp），不建議依此訊號進出場
+    fdr_p_value: 0.5186
+    fdr_significant: false
+    stable_across_periods: false
+  '6770':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-4.0pp／20日-17.2pp），不建議依此訊號進出場
+    fdr_p_value: 0.8948
+    fdr_significant: false
+    stable_across_periods: false
+  '2637':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.2259
+    fdr_significant: false
+    stable_across_periods: true
+  '2451':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.9552
+    fdr_significant: false
+    stable_across_periods: null
+  '2408':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差+1.2pp／20日-5.4pp），不建議依此訊號進出場
+    fdr_p_value: 0.9687
+    fdr_significant: false
+    stable_across_periods: false
+  '1609':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.5711
+    fdr_significant: false
+    stable_across_periods: null
+  '7842':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.7758
+    fdr_significant: false
+    stable_across_periods: null
+  '2615':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-7.0pp／20日+23.8pp），不建議依此訊號進出場
+    fdr_p_value: 0.0065
+    fdr_significant: false
+    stable_across_periods: true
+  '2465':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.0742
+    fdr_significant: false
+    stable_across_periods: true
+  '2542':
+    grade: B
+    reason: 優勢數字看起來像 A 級（10日+6.5pp／20日+11.3pp），但經 FDR 校正後不具統計顯著性（可能是運氣），上限降為 B——單看邊際數字會高估可信度
+    fdr_p_value: 0.1416
+    fdr_significant: false
+    stable_across_periods: true
+  '3006':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.7745
+    fdr_significant: false
+    stable_across_periods: false
+  '3088':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差+8.9pp／20日+1.1pp），不建議依此訊號進出場
+    fdr_p_value: 0.7363
+    fdr_significant: false
+    stable_across_periods: false
+  '6576':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.3849
+    fdr_significant: false
+    stable_across_periods: null
+  '1435':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.1966
+    fdr_significant: false
+    stable_across_periods: true
+  '6757':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.5419
+    fdr_significant: false
+    stable_across_periods: false
+  '6922':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.5208
+    fdr_significant: false
+    stable_across_periods: false
+  '5468':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差+3.7pp／20日+15.4pp），不建議依此訊號進出場
+    fdr_p_value: 0.1067
+    fdr_significant: false
+    stable_across_periods: false
+  '6226':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-16.0pp／20日-10.3pp），不建議依此訊號進出場
+    fdr_p_value: 0.8716
+    fdr_significant: false
+    stable_across_periods: false
+  '4716':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.7931
+    fdr_significant: false
+    stable_across_periods: false
+  '8476':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-3.7pp／20日-1.0pp），不建議依此訊號進出場
+    fdr_p_value: 0.6418
+    fdr_significant: false
+    stable_across_periods: true
+  '3285':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.0879
+    fdr_significant: false
+    stable_across_periods: false
+  '2303':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.6539
+    fdr_significant: false
+    stable_across_periods: true
+  '2061':
+    grade: B
+    reason: 優勢數字看起來像 A 級（10日+7.5pp／20日+7.8pp），但經 FDR 校正後不具統計顯著性（可能是運氣），上限降為 B——單看邊際數字會高估可信度
+    fdr_p_value: 0.1367
+    fdr_significant: false
+    stable_across_periods: true
+  '2491':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.0517
+    fdr_significant: false
+    stable_across_periods: true
+  '2478':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.0652
+    fdr_significant: false
+    stable_across_periods: true
+  '3481':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.6863
+    fdr_significant: false
+    stable_across_periods: true
+  '6259':
+    grade: D
+    reason: 訊號比基準線差（10日勝率差-4.2pp／20日-0.5pp），不建議依此訊號進出場
+    fdr_p_value: 0.3655
+    fdr_significant: false
+    stable_across_periods: null
+  '3652':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.1479
+    fdr_significant: false
+    stable_across_periods: false
+  '6175':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.3829
+    fdr_significant: false
+    stable_across_periods: false
+  '6432':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.5862
+    fdr_significant: false
+    stable_across_periods: true
+  '7712':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.8219
+    fdr_significant: false
+    stable_across_periods: null
+  '6672':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.1991
+    fdr_significant: false
+    stable_across_periods: true
+  '8438':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.739
+    fdr_significant: false
+    stable_across_periods: false

@@ -1,0 +1,232 @@
+generated_from_backtest_date: '2026-07-04'
+backtest_window_days: 1095
+indicator: kd
+stocks:
+  '7794':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.0527
+    fdr_significant: false
+    stable_across_periods: null
+  '1618':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.0798
+    fdr_significant: false
+    stable_across_periods: null
+  '2637':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.2224
+    fdr_significant: false
+    stable_across_periods: null
+  '2425':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.1266
+    fdr_significant: false
+    stable_across_periods: true
+  '3066':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.8325
+    fdr_significant: false
+    stable_across_periods: null
+  '5351':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.1241
+    fdr_significant: false
+    stable_across_periods: null
+  '3576':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.4641
+    fdr_significant: false
+    stable_across_periods: false
+  '6770':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.4284
+    fdr_significant: false
+    stable_across_periods: null
+  '2451':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.5643
+    fdr_significant: false
+    stable_across_periods: null
+  '2408':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.8977
+    fdr_significant: false
+    stable_across_periods: null
+  '1609':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.2737
+    fdr_significant: false
+    stable_across_periods: true
+  '2465':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.3785
+    fdr_significant: false
+    stable_across_periods: null
+  '2542':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.8846
+    fdr_significant: false
+    stable_across_periods: null
+  '3006':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 1.0
+    fdr_significant: false
+    stable_across_periods: null
+  '7842':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 1.0
+    fdr_significant: false
+    stable_across_periods: null
+  '2615':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.1726
+    fdr_significant: false
+    stable_across_periods: null
+  '3088':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.252
+    fdr_significant: false
+    stable_across_periods: null
+  '6576':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.2815
+    fdr_significant: false
+    stable_across_periods: null
+  '1435':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.7426
+    fdr_significant: false
+    stable_across_periods: null
+  '6757':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.1372
+    fdr_significant: false
+    stable_across_periods: null
+  '6922':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.5156
+    fdr_significant: false
+    stable_across_periods: null
+  '5468':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.1376
+    fdr_significant: false
+    stable_across_periods: null
+  '6226':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.8412
+    fdr_significant: false
+    stable_across_periods: null
+  '3285':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.8072
+    fdr_significant: false
+    stable_across_periods: null
+  '4716':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.7444
+    fdr_significant: false
+    stable_across_periods: true
+  '2303':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.9302
+    fdr_significant: false
+    stable_across_periods: null
+  '2061':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.2389
+    fdr_significant: false
+    stable_across_periods: null
+  '8476':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.0419
+    fdr_significant: false
+    stable_across_periods: true
+  '2478':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.4369
+    fdr_significant: false
+    stable_across_periods: null
+  '3481':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.7245
+    fdr_significant: false
+    stable_across_periods: null
+  '2491':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.3116
+    fdr_significant: false
+    stable_across_periods: null
+  '3652':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.3403
+    fdr_significant: false
+    stable_across_periods: null
+  '6175':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.6501
+    fdr_significant: false
+    stable_across_periods: null
+  '6432':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.1828
+    fdr_significant: false
+    stable_across_periods: null
+  '7712':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.81
+    fdr_significant: false
+    stable_across_periods: null
+  '6259':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.8415
+    fdr_significant: false
+    stable_across_periods: null
+  '6672':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.2075
+    fdr_significant: false
+    stable_across_periods: null
+  '8438':
+    grade: N/A
+    reason: 樣本數不足（<20次），無法評級
+    fdr_p_value: 0.7687
+    fdr_significant: false
+    stable_across_periods: null

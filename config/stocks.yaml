@@ -128,3 +128,18 @@ cost_line:
   entry_max_deviation_pct: 5    # ...but not more than this far above it (freshly built position)
   take_profit_deviation_pct: 15 # deviation >= this = profit-taking-sensitive zone
   stop_loss_deviation_pct: -10  # deviation <= this = institutions underwater
+
+# Classic technical indicators for swing trading (波段操作). Standard
+# textbook parameters, not tuned to this dataset. Untested until backtested
+# via run_backtest_technical.py.
+technical:
+  kd:
+    period: 9                   # RSV lookback window
+    oversold_threshold: 20       # K and D must both be below this for a signal
+  macd:
+    fast: 12
+    slow: 26
+    signal: 9
+  bollinger:
+    period: 20
+    std_dev: 2.0
