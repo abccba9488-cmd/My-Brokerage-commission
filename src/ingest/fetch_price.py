@@ -11,6 +11,13 @@ def fetch(stock_id: str, start_date: str, end_date: str) -> list[dict]:
         return []
     rows = []
     for _, r in df.iterrows():
+        # FinMind returns an all-zero OHLCV row for halted/no-trade days
+        # instead of omitting them (observed for 2317 on 2025-07-30 and
+        # 2884 on 2025-11-05). A close of 0 would register as a -100% move
+        # in every downstream ratio (returns, moving averages, drawdown),
+        # so drop these rather than let them corrupt indicators/backtests.
+        if r["close"] <= 0:
+            continue
         rows.append({
             "stock_id": r["stock_id"],
             "date": r["date"],
