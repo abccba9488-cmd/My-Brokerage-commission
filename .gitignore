@@ -2,6 +2,8 @@
 data/*.db
 reports/*.md
 reports/*.csv
+reports/FAILED_*.txt
+reports/*.log
 __pycache__/
 *.pyc
 .venv/

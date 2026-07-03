@@ -35,10 +35,21 @@ copy .env.example .env
 
 ## 排程（每日自動執行）
 
-分點與法人資料約在收盤後 20:00~21:00 更新完成，建議排在 21:30 之後執行。用 Windows 工作排程器（工作排程器 → 建立基本工作）指向：
+已建立 Windows 工作排程器任務 `BrokerageCommission-DailyReport`，**每天 21:30** 執行（分點與法人資料約在收盤後 20:00~21:00 更新完成）。`StartWhenAvailable` 已開啟：電腦當時關機的話，下次開機會自動補跑一次（但不會回溯補齊中間錯過的每一天，只補最新一次）。
+
+排程實際呼叫的是 `run_daily_checked.py`（檢查＋重試外殼），不是直接呼叫 `run_daily.py`：
 
 ```
-"C:\Users\user\Documents\claude\Brokerage commission\.venv\Scripts\python.exe" "C:\Users\user\Documents\claude\Brokerage commission\run_daily.py"
+"C:\Users\user\Documents\claude\Brokerage commission\.venv\Scripts\python.exe" "C:\Users\user\Documents\claude\Brokerage commission\run_daily_checked.py"
+```
+
+`run_daily_checked.py` 會在跑完後檢查當天的 CSV 報表是否包含 `config/stocks.yaml` 裡的每一檔股票；缺任何一檔就自動重跑，最多重試 3 次（間隔 5 分鐘），全部失敗才放棄，並寫一個 `reports/FAILED_YYYY-MM-DD.txt` 讓你一眼看出昨晚沒跑成功。過程記錄在 `reports/run_daily_checked.log`。
+
+管理排程：
+```powershell
+Get-ScheduledTask -TaskName "BrokerageCommission-DailyReport"     # 查看狀態
+Start-ScheduledTask -TaskName "BrokerageCommission-DailyReport"   # 立刻手動觸發一次
+Unregister-ScheduledTask -TaskName "BrokerageCommission-DailyReport" -Confirm:$false   # 刪除排程
 ```
 
 ## 回測
