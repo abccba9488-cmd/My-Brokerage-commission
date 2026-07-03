@@ -69,9 +69,10 @@ def signal_dates(
         window_dates = dates[window_start: i + 1]
         window_volume_total = sum(volumes[window_start: i + 1])
 
+        window_frames = [broker_by_date[d] for d in window_dates if d in broker_by_date]
         window_broker = (
-            pd.concat([broker_by_date[d] for d in window_dates if d in broker_by_date], ignore_index=True)
-            if broker_by_date else pd.DataFrame(columns=["stock_id", "date", "broker_id", "broker_name", "buy_shares", "sell_shares", "price"])
+            pd.concat(window_frames, ignore_index=True)
+            if window_frames else pd.DataFrame(columns=["stock_id", "date", "broker_id", "broker_name", "buy_shares", "sell_shares", "price"])
         )
         window_price = price_df.iloc[window_start: i + 1]
         if not window_broker.empty:
