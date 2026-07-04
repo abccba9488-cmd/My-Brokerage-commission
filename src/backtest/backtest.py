@@ -7,6 +7,7 @@ trusted.
 """
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 # A calendar-day gap this large between two consecutive trading rows means the
@@ -26,29 +27,40 @@ def _suspension_gap_indices(df: pd.DataFrame) -> set[int]:
 
 
 def trades_for_holding(price_df: pd.DataFrame, signal_dates: set[str], holding: int) -> list[dict]:
+    """Numpy-array core (not pandas .iloc/.cummax() per trade) — at
+    watchlist scale (38 stocks) the per-trade pandas overhead didn't
+    matter, but pooling the baseline (every trading date, for thousands of
+    stocks) across a ~2000-stock universe turned this into a genuine
+    bottleneck: a single run_multi() call was still running after 28+
+    minutes of CPU time. Same math, just without rebuilding a pandas
+    Series/Index on every single trade."""
     df = price_df.sort_values("date").reset_index(drop=True)
-    date_to_idx = {d: i for i, d in enumerate(df["date"])}
+    dates = df["date"].to_numpy()
+    closes = df["close"].to_numpy()
+    date_to_idx = {d: i for i, d in enumerate(dates)}
     gap_indices = _suspension_gap_indices(df)
+    n = len(df)
 
     trades = []
     for sig_date in sorted(signal_dates):
-        if sig_date not in date_to_idx:
+        entry_idx = date_to_idx.get(sig_date)
+        if entry_idx is None:
             continue
-        entry_idx = date_to_idx[sig_date]
         exit_idx = entry_idx + holding
-        if exit_idx >= len(df):
+        if exit_idx >= n:
             continue  # not enough forward data yet
         if any(entry_idx < g <= exit_idx for g in gap_indices):
             continue  # holding period spans a trading halt — not a real tradeable return
 
-        entry_close = df["close"].iloc[entry_idx]
-        exit_close = df["close"].iloc[exit_idx]
-        path = df["close"].iloc[entry_idx: exit_idx + 1]
+        entry_close = closes[entry_idx]
+        exit_close = closes[exit_idx]
+        path = closes[entry_idx: exit_idx + 1]
 
         ret_pct = (exit_close / entry_close - 1) * 100
-        max_drawdown_pct = ((path.cummax() - path) / path.cummax() * 100).max()
+        cummax = np.maximum.accumulate(path)
+        max_drawdown_pct = ((cummax - path) / cummax * 100).max()
 
-        trades.append({"signal_date": sig_date, "return_pct": ret_pct, "max_drawdown_pct": max_drawdown_pct})
+        trades.append({"signal_date": sig_date, "return_pct": ret_pct, "max_drawdown_pct": float(max_drawdown_pct)})
     return trades
 
 

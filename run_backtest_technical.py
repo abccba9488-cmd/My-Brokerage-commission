@@ -37,6 +37,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 CONFIG_PATH = Path(__file__).parent / "config" / "stocks.yaml"
+UNIVERSE_PATH = Path(__file__).parent / "config" / "universe.yaml"
 REPORTS_DIR = Path(__file__).parent / "reports"
 N_TERCILES = 3
 MIN_TERCILE_SIGNALS = 5
@@ -56,6 +57,12 @@ INDICATOR_LABELS = {
 
 def load_config() -> dict:
     return yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
+
+
+def load_stock_list(use_universe: bool) -> list[dict]:
+    if use_universe:
+        return yaml.safe_load(UNIVERSE_PATH.read_text(encoding="utf-8"))["stocks"]
+    return load_config()["stocks"]
 
 
 def load_price(conn: sqlite3.Connection, sid: str, start_date: str, end_date: str) -> pd.DataFrame:
@@ -197,6 +204,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--days", type=int, default=1095)
     parser.add_argument("--workers", type=int, default=None)
+    parser.add_argument("--universe", action="store_true", help="backtest the full ~2156-stock market (config/universe.yaml) instead of the 38-stock watchlist")
     args = parser.parse_args()
 
     config = load_config()
@@ -206,7 +214,7 @@ def main() -> None:
     start_date = end_date - timedelta(days=args.days)
     end_str, start_str = end_date.strftime("%Y-%m-%d"), start_date.strftime("%Y-%m-%d")
 
-    stocks = config["stocks"]
+    stocks = load_stock_list(args.universe)
     workers = args.workers or os.cpu_count()
     logger.info("Running %d stocks x %d indicators across %d worker processes", len(stocks), len(INDICATORS), workers)
 
@@ -267,7 +275,8 @@ def main() -> None:
                 grades[sid]["fdr_significant"] = fdr_significant
             grades[sid]["stable_across_periods"] = stable
 
-        credibility_path = Path(__file__).parent / "config" / f"signal_credibility_technical_{indicator}.yaml"
+        suffix = "_universe" if args.universe else ""
+        credibility_path = Path(__file__).parent / "config" / f"signal_credibility_technical_{indicator}{suffix}.yaml"
         credibility_path.write_text(
             yaml.safe_dump(
                 {"generated_from_backtest_date": run_date, "backtest_window_days": args.days,
@@ -278,7 +287,7 @@ def main() -> None:
         )
 
         report = render_indicator_report(indicator, bucket["results"], pooled, bucket["baseline"], baseline_pooled, grades, run_date)
-        out_path = REPORTS_DIR / f"backtest_{run_date}_technical_{indicator}.md"
+        out_path = REPORTS_DIR / f"backtest_{run_date}_technical_{indicator}{suffix}.md"
         out_path.write_text(report, encoding="utf-8")
         logger.info("%s: saved %s", indicator, out_path)
 

@@ -39,6 +39,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 CONFIG_PATH = Path(__file__).parent / "config" / "stocks.yaml"
+UNIVERSE_PATH = Path(__file__).parent / "config" / "universe.yaml"
 CREDIBILITY_PATH = Path(__file__).parent / "config" / "signal_credibility_cost_line.yaml"
 REPORTS_DIR = Path(__file__).parent / "reports"
 N_TERCILES = 3
@@ -47,6 +48,17 @@ MIN_TERCILE_SIGNALS = 5
 
 def load_config() -> dict:
     return yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
+
+
+def load_stock_list(use_universe: bool) -> list[dict]:
+    """The watchlist (config/stocks.yaml) is the user's own 38-stock
+    curated list used for the daily report; config/universe.yaml is the
+    full ~2156-stock TWSE/TPEx ordinary-share market, used only for
+    backtesting at scale (more statistical power for FDR, and a genuine
+    check on whether a finding like 3088's generalizes or was luck)."""
+    if use_universe:
+        return yaml.safe_load(UNIVERSE_PATH.read_text(encoding="utf-8"))["stocks"]
+    return load_config()["stocks"]
 
 
 def load_from_cache(conn: sqlite3.Connection, sid: str, start_date: str, end_date: str):
@@ -207,6 +219,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--days", type=int, default=1095)
     parser.add_argument("--workers", type=int, default=None)
+    parser.add_argument("--universe", action="store_true", help="backtest the full ~2156-stock market (config/universe.yaml) instead of the 38-stock watchlist")
     args = parser.parse_args()
 
     config = load_config()
@@ -218,7 +231,7 @@ def main() -> None:
     start_date = end_date - timedelta(days=args.days)
     end_str, start_str = end_date.strftime("%Y-%m-%d"), start_date.strftime("%Y-%m-%d")
 
-    stocks = config["stocks"]
+    stocks = load_stock_list(args.universe)
     workers = args.workers or os.cpu_count()
     logger.info("Running %d stocks across %d worker processes (investor=%s)", len(stocks), workers, cost_cfg["investor"])
 
@@ -274,7 +287,9 @@ def main() -> None:
         grades[sid]["stable_across_periods"] = stable
 
     run_date = end_date.strftime("%Y-%m-%d")
-    CREDIBILITY_PATH.write_text(
+    suffix = "_universe" if args.universe else ""
+    credibility_path = CREDIBILITY_PATH.with_name(f"{CREDIBILITY_PATH.stem}{suffix}.yaml")
+    credibility_path.write_text(
         yaml.safe_dump(
             {"generated_from_backtest_date": run_date, "backtest_window_days": args.days,
              "cost_line_config": cost_cfg, "stocks": grades},
@@ -282,10 +297,10 @@ def main() -> None:
         ),
         encoding="utf-8",
     )
-    logger.info("Signal credibility grades written to %s", CREDIBILITY_PATH)
+    logger.info("Signal credibility grades written to %s", credibility_path)
 
     report = render_report(per_stock_results, pooled, per_stock_baseline, baseline_pooled, grades, run_date, cost_cfg)
-    out_path = REPORTS_DIR / f"backtest_{run_date}_cost_line.md"
+    out_path = REPORTS_DIR / f"backtest_{run_date}_cost_line{suffix}.md"
     out_path.write_text(report, encoding="utf-8")
     print(report)
     print(f"\nSaved: {out_path}")
